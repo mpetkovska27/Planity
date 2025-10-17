@@ -46,6 +46,8 @@ namespace Planity.Controllers
 
         public ActionResult Create()
         {
+            var users = db.Users.ToList();
+            ViewBag.UserId = new SelectList(users, "Id", "UserName");
             return View();
         }
 

@@ -25,6 +25,13 @@ namespace Planity
             bundles.Add(new StyleBundle("~/Content/css").Include(
                       "~/Content/bootstrap.css",
                       "~/Content/site.css"));
+            bundles.Add(new ScriptBundle("~/bundles/datatables").Include(
+    "~/Scripts/jquery.dataTables.js"));
+            bundles.Add(new ScriptBundle("~/bundles/bootbox").Include(
+    "~/Scripts/bootbox.js"));
+            bundles.Add(new StyleBundle("~/Content/datatables").Include(
+                "~/Content/jquery.dataTables.css"));
+
         }
     }
 }
