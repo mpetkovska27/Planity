@@ -1,0 +1,47 @@
+﻿@model IEnumerable<Planity.Models.Grade>
+@{
+    ViewBag.Title = "Progress";
+}
+<h2>Progress</h2>
+
+@{
+    var total = (int)(ViewBag.TotalSubjects ?? 0);
+    var passed = (int)(ViewBag.Passed ?? 0);
+    var remaining = (int)(ViewBag.Remaining ?? 0);
+    var percent = total > 0 ? (passed * 100 / total) : 0;
+}
+<p><strong>Subjects:</strong> @passed / @total (remaining: @remaining)</p>
+<div class="progress mb-3">
+    <div class="progress-bar bg-success" role="progressbar" style="width:@percent%">
+        @percent%
+    </div>
+</div>
+
+<table id="grades" class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>Subject</th>
+            <th>Value</th>
+            <th>Date</th>
+            <th>Type</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var g in Model ?? new List<Planity.Models.Grade>())
+    {
+        <tr>
+            <td>@(g.Subject != null ? g.Subject.Name : "-")</td>
+            <td>@g.Value</td>
+            <td>@g.Date.ToShortDateString()</td>
+            <td>@g.Type</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@section scripts {
+    @Scripts.Render("~/bundles/datatables")
+    <script>
+        $(function () { $('#grades').DataTable(); });
+    </script>
+}

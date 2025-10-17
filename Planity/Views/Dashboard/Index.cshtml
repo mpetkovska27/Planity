@@ -1,0 +1,44 @@
+﻿@{
+    ViewBag.Title = "Dashboard";
+}
+<h2>Dashboard</h2>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card p-3 mb-3">
+            <strong>Total:</strong> @ViewBag.TotalTasks
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 mb-3">
+            <strong>Finished:</strong> @ViewBag.FinishedTasks
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 mb-3">
+            <strong>In progress:</strong> @ViewBag.InProgressTasks
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 mb-3">
+            <strong>Overdue:</strong> @ViewBag.OverdueTasks
+        </div>
+    </div>
+</div>
+
+@{
+    var total = (int)(ViewBag.TotalTasks ?? 0);
+    var finished = (int)(ViewBag.FinishedTasks ?? 0);
+    var percent = total > 0 ? (finished * 100 / total) : 0;
+}
+<div class="progress">
+    <div class="progress-bar" role="progressbar" style="width:@percent%">
+        @percent%
+    </div>
+</div>
+
+<p class="mt-3">
+    @Html.ActionLink("Manage Subjects", "Index", "Subjects", null, new { @class = "btn btn-primary" })
+    @Html.ActionLink("Manage Tasks", "Index", "TaskItems", null, new { @class = "btn btn-secondary" })
+    @Html.ActionLink("Manage Grades", "Index", "Grades", null, new { @class = "btn btn-info" })
+</p>
