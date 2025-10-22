@@ -32,6 +32,12 @@ namespace Planity.Controllers
 
         public ActionResult Create()
         {
+            var userId = User.Identity.GetUserId();
+            var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
+            var users = db.Users.ToList();
+            
+            ViewBag.SubjectId = new SelectList(subjects, "Id", "Name");
+            ViewBag.UserId = new SelectList(users, "Id", "UserName");
             return View();
         }
 
@@ -39,7 +45,16 @@ namespace Planity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create(Grade grade)
         {
-            if (!ModelState.IsValid) return View(grade);
+            if (!ModelState.IsValid) 
+            {
+                var userId = User.Identity.GetUserId();
+                var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
+                var users = db.Users.ToList();
+                
+                ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", grade.SubjectId);
+                ViewBag.UserId = new SelectList(users, "Id", "UserName", grade.UserId);
+                return View(grade);
+            }
 
             if (!User.IsInRole("Admin"))
                 grade.UserId = User.Identity.GetUserId();
@@ -56,6 +71,13 @@ namespace Planity.Controllers
             if (g == null) return HttpNotFound();
             if (!User.IsInRole("Admin") && g.UserId != User.Identity.GetUserId())
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            
+            var userId = User.Identity.GetUserId();
+            var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
+            var users = db.Users.ToList();
+            
+            ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", g.SubjectId);
+            ViewBag.UserId = new SelectList(users, "Id", "UserName", g.UserId);
             return View(g);
         }
 
@@ -68,7 +90,16 @@ namespace Planity.Controllers
             if (!User.IsInRole("Admin") && g.UserId != User.Identity.GetUserId())
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
 
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid) 
+            {
+                var userId = User.Identity.GetUserId();
+                var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
+                var users = db.Users.ToList();
+                
+                ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", model.SubjectId);
+                ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
+                return View(model);
+            }
 
             g.Value = model.Value;
             g.Date = model.Date;

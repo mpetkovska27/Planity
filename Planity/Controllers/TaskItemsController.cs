@@ -46,8 +46,14 @@ namespace Planity.Controllers
 
         public ActionResult Create()
         {
+            var userId = User.Identity.GetUserId();
             var users = db.Users.ToList();
+            var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
+            var groups = db.Groups.Where(g => g.TeamLeaderId == userId).ToList();
+
             ViewBag.UserId = new SelectList(users, "Id", "UserName");
+            ViewBag.SubjectId = new SelectList(subjects, "Id", "Name");
+            ViewBag.GroupId = new SelectList(groups, "Id", "Name");
             return View();
         }
 
@@ -55,9 +61,19 @@ namespace Planity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create(TaskItem model)
         {
-            if (!ModelState.IsValid) return View(model);
-
             var userId = User.Identity.GetUserId();
+
+            if (!ModelState.IsValid)
+            {
+                var users = db.Users.ToList();
+                var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
+                var groups = db.Groups.Where(g => g.TeamLeaderId == userId).ToList();
+
+                ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
+                ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", model.SubjectId);
+                ViewBag.GroupId = new SelectList(groups, "Id", "Name", model.GroupId);
+                return View(model);
+            }
 
             if (!model.IsGroupTask)
             {
@@ -82,13 +98,22 @@ namespace Planity.Controllers
             var task = db.TaskItems.Include(t => t.Group).FirstOrDefault(t => t.Id == id);
             if (task == null) return HttpNotFound();
 
+            var userId = User.Identity.GetUserId();
+
             if (!User.IsInRole("Admin"))
             {
-                var userId = User.Identity.GetUserId();
                 var canEdit = (task.IsGroupTask && task.Group != null && task.Group.TeamLeaderId == userId) ||
                               (!task.IsGroupTask && task.UserId == userId);
                 if (!canEdit) return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             }
+
+            var users = db.Users.ToList();
+            var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
+            var groups = db.Groups.Where(g => g.TeamLeaderId == userId).ToList();
+
+            ViewBag.UserId = new SelectList(users, "Id", "UserName", task.UserId);
+            ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", task.SubjectId);
+            ViewBag.GroupId = new SelectList(groups, "Id", "Name", task.GroupId);
             return View(task);
         }
 
@@ -99,15 +124,26 @@ namespace Planity.Controllers
             var task = db.TaskItems.Include(t => t.Group).FirstOrDefault(t => t.Id == model.Id);
             if (task == null) return HttpNotFound();
 
+            var userId = User.Identity.GetUserId();
+
             if (!User.IsInRole("Admin"))
             {
-                var userId = User.Identity.GetUserId();
                 var canEdit = (task.IsGroupTask && task.Group != null && task.Group.TeamLeaderId == userId) ||
                               (!task.IsGroupTask && task.UserId == userId);
                 if (!canEdit) return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             }
 
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid)
+            {
+                var users = db.Users.ToList();
+                var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
+                var groups = db.Groups.Where(g => g.TeamLeaderId == userId).ToList();
+
+                ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
+                ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", model.SubjectId);
+                ViewBag.GroupId = new SelectList(groups, "Id", "Name", model.GroupId);
+                return View(model);
+            }
 
             task.Title = model.Title;
             task.Description = model.Description;

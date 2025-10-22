@@ -3,27 +3,39 @@
   "WorkspaceRootPath": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|c:\\users\\asus\\documents\\planity\\planity\\planity\\controllers\\taskitemscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|c:\\users\\asus\\documents\\planity\\planity\\planity\\models\\grade.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|solutionrelative:planity\\models\\grade.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|C:\\Users\\ASUS\\Documents\\Planity\\Planity\\planity\\content\\home.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|solutionrelative:planity\\content\\home.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|C:\\Users\\ASUS\\Documents\\Planity\\Planity\\planity\\controllers\\taskitemscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|solutionrelative:planity\\controllers\\taskitemscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|c:\\users\\asus\\documents\\planity\\planity\\planity\\controllers\\subjectscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|C:\\Users\\ASUS\\Documents\\Planity\\Planity\\planity\\controllers\\subjectscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|solutionrelative:planity\\controllers\\subjectscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|c:\\users\\asus\\documents\\planity\\planity\\planity\\views\\subjects\\create.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|C:\\Users\\ASUS\\Documents\\Planity\\Planity\\planity\\content\\auth.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|solutionrelative:planity\\content\\auth.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|C:\\Users\\ASUS\\Documents\\Planity\\Planity\\planity\\views\\subjects\\create.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|solutionrelative:planity\\views\\subjects\\create.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|c:\\users\\asus\\documents\\planity\\planity\\planity\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|C:\\Users\\ASUS\\Documents\\Planity\\Planity\\planity\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|solutionrelative:planity\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|c:\\users\\asus\\documents\\planity\\planity\\planity\\app_start\\bundleconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|C:\\Users\\ASUS\\Documents\\Planity\\Planity\\planity\\app_start\\bundleconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|solutionrelative:planity\\app_start\\bundleconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|c:\\users\\asus\\documents\\planity\\planity\\planity\\scripts\\bootbox.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "AbsoluteMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|C:\\Users\\ASUS\\Documents\\Planity\\Planity\\planity\\scripts\\bootbox.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
       "RelativeMoniker": "D:0:0:{DD62314F-2508-43EC-9434-0B5CDB9B3893}|Planity\\Planity.csproj|solutionrelative:planity\\scripts\\bootbox.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
     },
     {
@@ -63,32 +75,67 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "TaskItemsController.cs",
-              "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Controllers\\TaskItemsController.cs",
-              "RelativeDocumentMoniker": "Planity\\Controllers\\TaskItemsController.cs",
-              "ToolTip": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Controllers\\TaskItemsController.cs",
-              "RelativeToolTip": "Planity\\Controllers\\TaskItemsController.cs",
-              "ViewState": "AgIAACQAAAAAAAAAAAAowDEAAABFAAAAAAAAAA==",
+              "Title": "Grade.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Models\\Grade.cs",
+              "RelativeDocumentMoniker": "Planity\\Models\\Grade.cs",
+              "ToolTip": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Models\\Grade.cs",
+              "RelativeToolTip": "Planity\\Models\\Grade.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-17T22:34:06.88Z",
+              "WhenOpened": "2025-10-22T14:49:34.708Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
+              "Title": "home.css",
+              "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Content\\home.css",
+              "RelativeDocumentMoniker": "Planity\\Content\\home.css",
+              "ToolTip": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Content\\home.css",
+              "RelativeToolTip": "Planity\\Content\\home.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAUwAgAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2025-10-22T13:40:07.048Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "auth.css",
+              "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Content\\auth.css",
+              "RelativeDocumentMoniker": "Planity\\Content\\auth.css",
+              "ToolTip": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Content\\auth.css",
+              "RelativeToolTip": "Planity\\Content\\auth.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2025-10-22T13:39:59.299Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "TaskItemsController.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Controllers\\TaskItemsController.cs",
+              "RelativeDocumentMoniker": "Planity\\Controllers\\TaskItemsController.cs",
+              "ToolTip": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Controllers\\TaskItemsController.cs",
+              "RelativeToolTip": "Planity\\Controllers\\TaskItemsController.cs",
+              "ViewState": "AgIAALgAAAAAAAAAAAAgwMYAAAAzAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-17T22:34:06.88Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
               "Title": "SubjectsController.cs",
               "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Controllers\\SubjectsController.cs",
               "RelativeDocumentMoniker": "Planity\\Controllers\\SubjectsController.cs",
               "ToolTip": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Controllers\\SubjectsController.cs",
               "RelativeToolTip": "Planity\\Controllers\\SubjectsController.cs",
-              "ViewState": "AgIAABYAAAAAAAAAAAAgwCMAAABFAAAAAAAAAA==",
+              "ViewState": "AgIAACQAAAAAAAAAAAAowCsAAAALAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-17T22:31:05.813Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-17T22:31:05.813Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 5,
               "Title": "Create.cshtml",
               "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Views\\Subjects\\Create.cshtml",
               "RelativeDocumentMoniker": "Planity\\Views\\Subjects\\Create.cshtml",
@@ -96,12 +143,11 @@
               "RelativeToolTip": "Planity\\Views\\Subjects\\Create.cshtml",
               "ViewState": "AgIAAB4AAAAAAAAAAAAwwC0AAAALAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-10-17T22:27:20.398Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-17T22:27:20.398Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 8,
               "Title": "bootbox.js",
               "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Scripts\\bootbox.js",
               "RelativeDocumentMoniker": "Planity\\Scripts\\bootbox.js",
@@ -109,12 +155,11 @@
               "RelativeToolTip": "Planity\\Scripts\\bootbox.js",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2025-10-17T22:22:04.74Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-17T22:22:04.74Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 7,
               "Title": "BundleConfig.cs",
               "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\App_Start\\BundleConfig.cs",
               "RelativeDocumentMoniker": "Planity\\App_Start\\BundleConfig.cs",
@@ -122,12 +167,11 @@
               "RelativeToolTip": "Planity\\App_Start\\BundleConfig.cs",
               "ViewState": "AgIAAAwAAAAAAAAAAAAYwBkAAAAkAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-17T22:17:56.787Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-17T22:17:56.787Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 6,
               "Title": "_Layout.cshtml",
               "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Views\\Shared\\_Layout.cshtml",
               "RelativeDocumentMoniker": "Planity\\Views\\Shared\\_Layout.cshtml",
@@ -135,12 +179,11 @@
               "RelativeToolTip": "Planity\\Views\\Shared\\_Layout.cshtml",
               "ViewState": "AgIAAAwAAAAAAAAAAAAcwBQAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-10-17T21:52:17.39Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-17T21:52:17.39Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 10,
               "Title": "Startup.Auth.cs",
               "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\App_Start\\Startup.Auth.cs",
               "RelativeDocumentMoniker": "Planity\\App_Start\\Startup.Auth.cs",
@@ -152,7 +195,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 9,
               "Title": "Startup.cs",
               "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Startup.cs",
               "RelativeDocumentMoniker": "Planity\\Startup.cs",
@@ -164,7 +207,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 11,
               "Title": "IdentityModels.cs",
               "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Models\\IdentityModels.cs",
               "RelativeDocumentMoniker": "Planity\\Models\\IdentityModels.cs",
@@ -176,7 +219,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 12,
               "Title": "AccountController.cs",
               "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Controllers\\AccountController.cs",
               "RelativeDocumentMoniker": "Planity\\Controllers\\AccountController.cs",
@@ -188,7 +231,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 13,
               "Title": "202510172135278_Initial.cs",
               "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Migrations\\202510172135278_Initial.cs",
               "RelativeDocumentMoniker": "Planity\\Migrations\\202510172135278_Initial.cs",
@@ -200,7 +243,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 14,
               "Title": "Configuration.cs",
               "DocumentMoniker": "C:\\Users\\ASUS\\Documents\\Planity\\Planity\\Planity\\Migrations\\Configuration.cs",
               "RelativeDocumentMoniker": "Planity\\Migrations\\Configuration.cs",

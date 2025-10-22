@@ -1,8 +1,10 @@
 ﻿/* Set padding to keep content from hitting the edges */
 .body-content {
-    margin-top: 15px;
-    padding-left: 15px;
-    padding-right: 15px;
+    margin-top: 0;
+    padding-left: 0;
+    padding-right: 0;
+    max-width: 98% !important;
+    width: 98% !important;
 }
 
 /* Override the default bootstrap behavior where horizontal description lists 
@@ -17,4 +19,33 @@ input,
 select,
 textarea {
     max-width: 280px;
+}
+
+:root {
+    --primary-color: #89BFD0;
+    --secondary-color: #E0E9EF;
+    --accent-color: #CBD0D6;
+    --dark-color: #18211E;
+    --neutral-color: #948C87;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--dark-color);
+    border-color: var(--dark-color);
+}
+
+.navbar-logo {
+    height: 40px;
+    width: 150px;
+}
+
+
+.navbar-brand:hover .navbar-logo {
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
 }

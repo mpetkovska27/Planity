@@ -36,6 +36,8 @@ namespace Planity.Controllers
 
         public ActionResult Create()
         {
+            var users = db.Users.ToList();
+            ViewBag.UserId = new SelectList(users, "Id", "UserName");
             return View();
         }
 
@@ -43,7 +45,12 @@ namespace Planity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create(StudyPlan model)
         {
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid) 
+            {
+                var users = db.Users.ToList();
+                ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
+                return View(model);
+            }
             model.UserId = User.Identity.GetUserId();
             db.StudyPlans.Add(model);
             db.SaveChanges();
@@ -57,6 +64,9 @@ namespace Planity.Controllers
             if (sp == null) return HttpNotFound();
             if (!User.IsInRole("Admin") && sp.UserId != User.Identity.GetUserId())
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            
+            var users = db.Users.ToList();
+            ViewBag.UserId = new SelectList(users, "Id", "UserName", sp.UserId);
             return View(sp);
         }
 
@@ -69,7 +79,12 @@ namespace Planity.Controllers
             if (!User.IsInRole("Admin") && sp.UserId != User.Identity.GetUserId())
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
 
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid) 
+            {
+                var users = db.Users.ToList();
+                ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
+                return View(model);
+            }
 
             sp.Name = model.Name;
             sp.StartDate = model.StartDate;

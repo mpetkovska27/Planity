@@ -39,6 +39,8 @@ namespace Planity.Controllers
 
         public ActionResult Create()
         {
+            var users = db.Users.ToList();
+            ViewBag.TeamLeaderId = new SelectList(users, "Id", "UserName");
             return View();
         }
 
@@ -46,7 +48,12 @@ namespace Planity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create(Group group)
         {
-            if (!ModelState.IsValid) return View(group);
+            if (!ModelState.IsValid) 
+            {
+                var users = db.Users.ToList();
+                ViewBag.TeamLeaderId = new SelectList(users, "Id", "UserName", group.TeamLeaderId);
+                return View(group);
+            }
             if (!User.IsInRole("Admin")) group.TeamLeaderId = User.Identity.GetUserId();
 
             db.Groups.Add(group);
@@ -61,6 +68,9 @@ namespace Planity.Controllers
             if (group == null) return HttpNotFound();
             if (!User.IsInRole("Admin") && group.TeamLeaderId != User.Identity.GetUserId())
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            
+            var users = db.Users.ToList();
+            ViewBag.TeamLeaderId = new SelectList(users, "Id", "UserName", group.TeamLeaderId);
             return View(group);
         }
 
@@ -73,7 +83,12 @@ namespace Planity.Controllers
             if (!User.IsInRole("Admin") && group.TeamLeaderId != User.Identity.GetUserId())
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
 
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid) 
+            {
+                var users = db.Users.ToList();
+                ViewBag.TeamLeaderId = new SelectList(users, "Id", "UserName", model.TeamLeaderId);
+                return View(model);
+            }
 
             group.Name = model.Name;
             db.SaveChanges();

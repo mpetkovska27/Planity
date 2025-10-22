@@ -43,11 +43,15 @@ namespace Planity.Controllers
         {
             if (ModelState.IsValid)
             {
-                subject.UserId = User.Identity.GetUserId();
+                if (!User.IsInRole("Admin"))
+                    subject.UserId = User.Identity.GetUserId();
                 db.Subjects.Add(subject);
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
+            
+            var users = db.Users.ToList();
+            ViewBag.UserId = new SelectList(users, "Id", "UserName", subject.UserId);
             return View(subject);
         }
 
@@ -58,6 +62,9 @@ namespace Planity.Controllers
             if (subject == null) return HttpNotFound();
             if (!User.IsInRole("Admin") && subject.UserId != User.Identity.GetUserId())
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            
+            var users = db.Users.ToList();
+            ViewBag.UserId = new SelectList(users, "Id", "UserName", subject.UserId);
             return View(subject);
         }
 
@@ -78,6 +85,9 @@ namespace Planity.Controllers
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
+            
+            var users = db.Users.ToList();
+            ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
             return View(model);
         }
 
