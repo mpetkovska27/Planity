@@ -15,9 +15,6 @@
             @Html.DisplayNameFor(model => model.Subject.Name)
         </th>
         <th>
-            @Html.DisplayNameFor(model => model.User.FullName)
-        </th>
-        <th>
             @Html.DisplayNameFor(model => model.Value)
         </th>
         <th>
@@ -35,10 +32,7 @@
             @Html.DisplayFor(modelItem => item.Subject.Name)
         </td>
         <td>
-            @Html.DisplayFor(modelItem => item.User.FullName)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.Value)
+            <strong>@Html.DisplayFor(modelItem => item.Value)</strong>
         </td>
         <td>
             @Html.DisplayFor(modelItem => item.Date)

@@ -23,9 +23,9 @@ namespace Planity.Controllers
                 (t.IsGroupTask && t.Group.Members.Any(m => m.UserId == userId)));
 
             var total = myTasks.Count();
-            var finished = myTasks.Count(t => t.IsCompleted);
-            var inProgress = myTasks.Count(t => !t.IsCompleted && t.DueDate >= DateTime.Now);
-            var overdue = myTasks.Count(t => !t.IsCompleted && t.DueDate < DateTime.Now);
+            var finished = myTasks.Count(t => t.Status == TaskStatus.Done);
+            var inProgress = myTasks.Count(t => t.Status == TaskStatus.InProgress && t.DueDate >= DateTime.Now);
+            var overdue = myTasks.Count(t => t.Status == TaskStatus.Overdue || (t.Status != TaskStatus.Done && t.DueDate < DateTime.Now));
 
             ViewBag.TotalTasks = total;
             ViewBag.FinishedTasks = finished;

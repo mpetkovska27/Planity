@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.AspNet.Identity;
+using Planity.Models;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
@@ -6,118 +8,152 @@ using System.Linq;
 using System.Net;
 using System.Web;
 using System.Web.Mvc;
-using Planity.Models;
-using Microsoft.AspNet.Identity;
 
 namespace Planity.Controllers
 {
-    [Authorize(Roles = "Student,TimLeader,Admin")]
     public class StudyPlansController : Controller
     {
-        private readonly ApplicationDbContext db = new ApplicationDbContext();
+        private ApplicationDbContext db = new ApplicationDbContext();
 
+        // GET: StudyPlans
         public ActionResult Index()
         {
-            var userId = User.IsInRole("Admin") ? null : User.Identity.GetUserId();
-            var q = db.StudyPlans.AsQueryable();
-            if (userId != null) q = q.Where(s => s.UserId == userId);
-            return View(q.ToList());
+            string currentUserId = User.Identity.GetUserId();
+            var studyPlans = db.StudyPlans
+                .Where(s => s.UserId == currentUserId)
+                .OrderBy(s => s.StartDate)
+                .ToList();
+            return View(studyPlans);
         }
 
+        // GET: StudyPlans/Details/5
         public ActionResult Details(int? id)
         {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var sp = db.StudyPlans.Find(id);
-            if (sp == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && sp.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
-            return View(sp);
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+
+            string currentUserId = User.Identity.GetUserId();
+            StudyPlan studyPlan = db.StudyPlans
+                .Include(s => s.Tasks)
+                .FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+
+            if (studyPlan == null)
+            {
+                return HttpNotFound();
+            }
+            return View(studyPlan);
         }
 
+        // GET: StudyPlans/Create
         public ActionResult Create()
         {
-            var users = db.Users.ToList();
-            ViewBag.UserId = new SelectList(users, "Id", "UserName");
             return View();
         }
 
+        // POST: StudyPlans/Create
+        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
+        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(StudyPlan model)
+        public ActionResult Create([Bind(Include = "Id,Name,StartDate,EndDate,UserId")] StudyPlan studyPlan)
         {
-            if (!ModelState.IsValid) 
+            studyPlan.UserId = User.Identity.GetUserId();
+
+            if (ModelState.IsValid)
             {
-                var users = db.Users.ToList();
-                ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
-                return View(model);
+                db.StudyPlans.Add(studyPlan);
+                db.SaveChanges();
+                return RedirectToAction("Index");
             }
-            model.UserId = User.Identity.GetUserId();
-            db.StudyPlans.Add(model);
-            db.SaveChanges();
-            return RedirectToAction("Index");
+
+            return View(studyPlan);
         }
 
+        // GET: StudyPlans/Edit/5
         public ActionResult Edit(int? id)
         {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var sp = db.StudyPlans.Find(id);
-            if (sp == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && sp.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
-            
-            var users = db.Users.ToList();
-            ViewBag.UserId = new SelectList(users, "Id", "UserName", sp.UserId);
-            return View(sp);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(StudyPlan model)
-        {
-            var sp = db.StudyPlans.Find(model.Id);
-            if (sp == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && sp.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
-
-            if (!ModelState.IsValid) 
+            if (id == null)
             {
-                var users = db.Users.ToList();
-                ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
-                return View(model);
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
 
-            sp.Name = model.Name;
-            sp.StartDate = model.StartDate;
-            sp.EndDate = model.EndDate;
-            db.SaveChanges();
-            return RedirectToAction("Index");
+            string currentUserId = User.Identity.GetUserId();
+            StudyPlan studyPlan = db.StudyPlans.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+
+            if (studyPlan == null)
+            {
+                return HttpNotFound();
+            }
+            return View(studyPlan);
         }
 
+        // POST: StudyPlans/Edit/5
+        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
+        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit([Bind(Include = "Id,Name,StartDate,EndDate")] StudyPlan studyPlan)
+        {
+            studyPlan.UserId = User.Identity.GetUserId();
+
+            if (ModelState.IsValid)
+            {
+                db.Entry(studyPlan).State = EntityState.Modified;
+                db.SaveChanges();
+                return RedirectToAction("Index");
+            }
+            return View(studyPlan);
+        }
+
+        // GET: StudyPlans/Delete/5
         public ActionResult Delete(int? id)
         {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var sp = db.StudyPlans.Find(id);
-            if (sp == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && sp.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
-            return View(sp);
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+
+            string currentUserId = User.Identity.GetUserId();
+            StudyPlan studyPlan = db.StudyPlans.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+
+            if (studyPlan == null)
+            {
+                return HttpNotFound();
+            }
+            return View(studyPlan);
         }
 
+        // POST: StudyPlans/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)
         {
-            var sp = db.StudyPlans.Find(id);
-            if (sp == null) return HttpNotFound();
-            db.StudyPlans.Remove(sp);
-            db.SaveChanges();
+            string currentUserId = User.Identity.GetUserId();
+            StudyPlan studyPlan = db.StudyPlans.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+
+            if (studyPlan != null)
+            {
+                var tasksInPlan = db.TaskItems.Where(t => t.StudyPlanId == id);
+                foreach (var task in tasksInPlan)
+                {
+                    task.StudyPlanId = null;
+                }
+
+                db.StudyPlans.Remove(studyPlan);
+                db.SaveChanges();
+            }
             return RedirectToAction("Index");
         }
 
-        // Study plan generator UI (logic later)
-        public ActionResult Generator()
+        protected override void Dispose(bool disposing)
         {
-            return View();
+            if (disposing)
+            {
+                db.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }

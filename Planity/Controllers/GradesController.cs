@@ -1,134 +1,146 @@
-﻿using System.Data.Entity;
+﻿using Microsoft.AspNet.Identity;
+using Planity.Models;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.Entity;
 using System.Linq;
 using System.Net;
+using System.Web;
 using System.Web.Mvc;
-using Microsoft.AspNet.Identity;
-using Planity.Models;
 
 namespace Planity.Controllers
 {
-    [Authorize(Roles = "Student,TimLeader,Admin")]
     public class GradesController : Controller
     {
-        private readonly ApplicationDbContext db = new ApplicationDbContext();
+        private ApplicationDbContext db = new ApplicationDbContext();
 
+        // GET: Grades
         public ActionResult Index()
         {
-            var userId = User.IsInRole("Admin") ? null : User.Identity.GetUserId();
-            var q = db.Grades.Include(g => g.Subject).AsQueryable();
-            if (userId != null) q = q.Where(g => g.UserId == userId);
-            return View(q.ToList());
+            string currentUserId = User.Identity.GetUserId();
+            var grades = db.Grades
+                .Where(g => g.UserId == currentUserId)
+                .Include(g => g.Subject)
+                .OrderByDescending(g => g.Date)
+                .ToList();
+            return View(grades);
         }
 
+        // GET: Grades/Details/5
         public ActionResult Details(int? id)
         {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var g = db.Grades.Include(x => x.Subject).FirstOrDefault(x => x.Id == id);
-            if (g == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && g.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
-            return View(g);
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            Grade grade = db.Grades.Include(g => g.Subject).FirstOrDefault(g => g.Id == id);
+            if (grade == null || grade.UserId != User.Identity.GetUserId())
+            {
+                return HttpNotFound();
+            }
+            return View(grade);
         }
 
+        // GET: Grades/Create
         public ActionResult Create()
         {
-            var userId = User.Identity.GetUserId();
-            var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
-            var users = db.Users.ToList();
-            
-            ViewBag.SubjectId = new SelectList(subjects, "Id", "Name");
-            ViewBag.UserId = new SelectList(users, "Id", "UserName");
+            string currentUserId = User.Identity.GetUserId();
+            ViewBag.SubjectId = new SelectList(db.Subjects.Where(s => s.UserId == currentUserId), "Id", "Name");
             return View();
         }
 
+        // POST: Grades/Create
+        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
+        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Grade grade)
+        public ActionResult Create([Bind(Include = "Id,Value,Date,Type,SubjectId")] Grade grade)
         {
-            if (!ModelState.IsValid) 
+            grade.UserId = User.Identity.GetUserId();
+
+            if (ModelState.IsValid)
             {
-                var userId = User.Identity.GetUserId();
-                var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
-                var users = db.Users.ToList();
-                
-                ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", grade.SubjectId);
-                ViewBag.UserId = new SelectList(users, "Id", "UserName", grade.UserId);
-                return View(grade);
+                db.Grades.Add(grade);
+                db.SaveChanges();
+                return RedirectToAction("Index");
             }
 
-            if (!User.IsInRole("Admin"))
-                grade.UserId = User.Identity.GetUserId();
-
-            db.Grades.Add(grade);
-            db.SaveChanges();
-            return RedirectToAction("Index");
+            ViewBag.SubjectId = new SelectList(db.Subjects.Where(s => s.UserId == grade.UserId), "Id", "Name", grade.SubjectId);
+            return View(grade);
         }
 
+        // GET: Grades/Edit/5
         public ActionResult Edit(int? id)
         {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var g = db.Grades.Find(id);
-            if (g == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && g.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
-            
-            var userId = User.Identity.GetUserId();
-            var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
-            var users = db.Users.ToList();
-            
-            ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", g.SubjectId);
-            ViewBag.UserId = new SelectList(users, "Id", "UserName", g.UserId);
-            return View(g);
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            Grade grade = db.Grades.Find(id);
+            if (grade == null || grade.UserId != User.Identity.GetUserId())
+            {
+                return HttpNotFound();
+            }
+            ViewBag.SubjectId = new SelectList(db.Subjects.Where(s => s.UserId == grade.UserId), "Id", "Name", grade.SubjectId);
+            return View(grade);
         }
 
+        // POST: Grades/Edit/5
+        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
+        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(Grade model)
+        public ActionResult Edit([Bind(Include = "Id,Value,Date,Type,SubjectId,UserId")] Grade grade)
         {
-            var g = db.Grades.Find(model.Id);
-            if (g == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && g.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            grade.UserId = User.Identity.GetUserId();
 
-            if (!ModelState.IsValid) 
+            if (ModelState.IsValid)
             {
-                var userId = User.Identity.GetUserId();
-                var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
-                var users = db.Users.ToList();
-                
-                ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", model.SubjectId);
-                ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
-                return View(model);
+                db.Entry(grade).State = EntityState.Modified;
+                db.SaveChanges();
+                return RedirectToAction("Index");
             }
-
-            g.Value = model.Value;
-            g.Date = model.Date;
-            g.Type = model.Type;
-            g.SubjectId = model.SubjectId;
-
-            db.SaveChanges();
-            return RedirectToAction("Index");
+            ViewBag.SubjectId = new SelectList(db.Subjects.Where(s => s.UserId == grade.UserId), "Id", "Name", grade.SubjectId);
+            return View(grade);
         }
 
+        // GET: Grades/Delete/5
         public ActionResult Delete(int? id)
         {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var g = db.Grades.Find(id);
-            if (g == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && g.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
-            return View(g);
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            Grade grade = db.Grades.Include(g => g.Subject).FirstOrDefault(g => g.Id == id);
+            if (grade == null || grade.UserId != User.Identity.GetUserId())
+            {
+                return HttpNotFound();
+            }
+            return View(grade);
         }
 
+        // POST: Grades/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)
         {
-            var g = db.Grades.Find(id);
-            if (g == null) return HttpNotFound();
-            db.Grades.Remove(g);
-            db.SaveChanges();
+            Grade grade = db.Grades.Find(id);
+            if (grade.UserId == User.Identity.GetUserId())
+            {
+                db.Grades.Remove(grade);
+                db.SaveChanges();
+            }
             return RedirectToAction("Index");
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                db.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }

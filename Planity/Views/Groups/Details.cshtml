@@ -28,6 +28,22 @@
 
     </dl>
 </div>
+
+<h4>Members</h4>
+<table class="table">
+    <tr>
+        <th>Name</th>
+        <th>Email</th>
+    </tr>
+    @foreach (var member in Model.Members)
+    {
+        <tr>
+            <td>@member.User.FullName</td>
+            <td>@member.User.Email</td>
+        </tr>
+    }
+</table>
+
 <p>
     @Html.ActionLink("Edit", "Edit", new { id = Model.Id }) |
     @Html.ActionLink("Back to List", "Index")

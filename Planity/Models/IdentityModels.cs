@@ -1,4 +1,5 @@
-﻿using System.Data.Entity;
+﻿using System.Collections.Generic;
+using System.Data.Entity;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Identity;
@@ -10,10 +11,10 @@ namespace Planity.Models
     public class ApplicationUser : IdentityUser
     {
         public string FullName { get; set; }
-        public virtual System.Collections.Generic.ICollection<Subject> Subjects { get; set; }
-        public virtual System.Collections.Generic.ICollection<TaskItem> Tasks { get; set; }
-        public virtual System.Collections.Generic.ICollection<GroupMember> GroupMemberships { get; set; }
-        public virtual System.Collections.Generic.ICollection<StudyPlan> StudyPlans { get; set; }
+        public virtual System.Collections.Generic.ICollection<Subject> Subjects { get; set; } = new List<Subject>();
+        public virtual System.Collections.Generic.ICollection<TaskItem> Tasks { get; set; } = new List<TaskItem>();
+        public virtual System.Collections.Generic.ICollection<GroupMember> GroupMembers { get; set; } = new List<GroupMember>();
+        public virtual System.Collections.Generic.ICollection<StudyPlan> StudyPlans { get; set; } = new List<StudyPlan>();
 
         public async Task<ClaimsIdentity> GenerateUserIdentityAsync(UserManager<ApplicationUser> manager)
         {

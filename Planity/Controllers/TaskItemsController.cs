@@ -1,208 +1,158 @@
-﻿using System;
+﻿using Microsoft.AspNet.Identity;
+using Planity.Models;
+using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Data.Entity;
 using System.Linq;
 using System.Net;
+using System.Web;
 using System.Web.Mvc;
-using Microsoft.AspNet.Identity;
-using Planity.Models;
 
 namespace Planity.Controllers
 {
-    [Authorize(Roles = "Student,TimLeader,Admin")]
     public class TaskItemsController : Controller
     {
-        private readonly ApplicationDbContext db = new ApplicationDbContext();
+        private ApplicationDbContext db = new ApplicationDbContext();
 
+        // GET: TaskItems
         public ActionResult Index()
         {
-            var userId = User.Identity.GetUserId();
-            var q = db.TaskItems
-                .Include(t => t.Subject)
+            string currentUserId = User.Identity.GetUserId();
+            var taskItems = db.TaskItems
+                .Where(t => t.UserId == currentUserId)
                 .Include(t => t.Group)
-                .Include(t => t.Group.Members);
-
-            if (!User.IsInRole("Admin"))
-            {
-                q = q.Where(t =>
-                    t.UserId == userId ||
-                    (t.IsGroupTask && t.Group != null && t.Group.Members.Any(m => m.UserId == userId)));
-            }
-            return View(q.ToList());
+                .Include(t => t.StudyPlan)
+                .Include(t => t.Subject)
+                .ToList();
+            return View(taskItems);
         }
 
+        // GET: TaskItems/Details/5
         public ActionResult Details(int? id)
         {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var task = db.TaskItems.Include(t => t.Group).Include(t => t.Group.Members).FirstOrDefault(t => t.Id == id);
-            if (task == null) return HttpNotFound();
-            if (!User.IsInRole("Admin"))
+            if (id == null)
             {
-                var userId = User.Identity.GetUserId();
-                var canView = task.UserId == userId || (task.IsGroupTask && task.Group != null && task.Group.Members.Any(m => m.UserId == userId));
-                if (!canView) return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            return View(task);
+            string currentUserId = User.Identity.GetUserId();
+            TaskItem taskItem = db.TaskItems.FirstOrDefault(t => t.Id == id && t.UserId == currentUserId);
+            if (taskItem == null)
+            {
+                return HttpNotFound();
+            }
+            return View(taskItem);
         }
 
+        // GET: TaskItems/Create
         public ActionResult Create()
         {
-            var userId = User.Identity.GetUserId();
-            var users = db.Users.ToList();
-            var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
-            var groups = db.Groups.Where(g => g.TeamLeaderId == userId).ToList();
-
-            ViewBag.UserId = new SelectList(users, "Id", "UserName");
-            ViewBag.SubjectId = new SelectList(subjects, "Id", "Name");
-            ViewBag.GroupId = new SelectList(groups, "Id", "Name");
+            string currentUserId = User.Identity.GetUserId();
+            ViewBag.GroupId = new SelectList(db.Groups.Where(g => g.TeamLeaderId == currentUserId || g.Members.Any(m => m.UserId == currentUserId)), "Id", "Name");
+            ViewBag.StudyPlanId = new SelectList(db.StudyPlans.Where(s => s.UserId == currentUserId), "Id", "Name");
+            ViewBag.SubjectId = new SelectList(db.Subjects.Where(s => s.UserId == currentUserId), "Id", "Name");
             return View();
         }
 
+        // POST: TaskItems/Create
+        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
+        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(TaskItem model)
+        public ActionResult Create([Bind(Include = "Id,Title,Description,Type,Priority,Status,DueDate,PlanedHours,SubjectId,IsGroupTask,GroupId,StudyPlanId")] TaskItem taskItem)
         {
-            var userId = User.Identity.GetUserId();
+            taskItem.UserId = User.Identity.GetUserId();
 
-            if (!ModelState.IsValid)
+            taskItem.UserId = User.Identity.GetUserId();
+
+            if (ModelState.IsValid)
             {
-                var users = db.Users.ToList();
-                var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
-                var groups = db.Groups.Where(g => g.TeamLeaderId == userId).ToList();
-
-                ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
-                ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", model.SubjectId);
-                ViewBag.GroupId = new SelectList(groups, "Id", "Name", model.GroupId);
-                return View(model);
+                db.TaskItems.Add(taskItem);
+                db.SaveChanges();
+                return RedirectToAction("Index");
             }
 
-            if (!model.IsGroupTask)
-            {
-                model.UserId = userId;
-            }
-            else if (!User.IsInRole("Admin"))
-            {
-                var group = db.Groups.FirstOrDefault(g => g.Id == model.GroupId);
-                if (group == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-                if (group.TeamLeaderId != userId)
-                    return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
-            }
-
-            db.TaskItems.Add(model);
-            db.SaveChanges();
-            return RedirectToAction("Index");
+            ViewBag.GroupId = new SelectList(db.Groups, "Id", "Name", taskItem.GroupId);
+            ViewBag.StudyPlanId = new SelectList(db.StudyPlans.Where(s => s.UserId == taskItem.UserId), "Id", "Name", taskItem.StudyPlanId);
+            ViewBag.SubjectId = new SelectList(db.Subjects.Where(s => s.UserId == taskItem.UserId), "Id", "Name", taskItem.SubjectId);
+            return View(taskItem);
         }
 
+        // GET: TaskItems/Edit/5
         public ActionResult Edit(int? id)
         {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var task = db.TaskItems.Include(t => t.Group).FirstOrDefault(t => t.Id == id);
-            if (task == null) return HttpNotFound();
-
-            var userId = User.Identity.GetUserId();
-
-            if (!User.IsInRole("Admin"))
+            if (id == null)
             {
-                var canEdit = (task.IsGroupTask && task.Group != null && task.Group.TeamLeaderId == userId) ||
-                              (!task.IsGroupTask && task.UserId == userId);
-                if (!canEdit) return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-
-            var users = db.Users.ToList();
-            var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
-            var groups = db.Groups.Where(g => g.TeamLeaderId == userId).ToList();
-
-            ViewBag.UserId = new SelectList(users, "Id", "UserName", task.UserId);
-            ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", task.SubjectId);
-            ViewBag.GroupId = new SelectList(groups, "Id", "Name", task.GroupId);
-            return View(task);
+            string currentUserId = User.Identity.GetUserId();
+            TaskItem taskItem = db.TaskItems.FirstOrDefault(t => t.Id == id && t.UserId == currentUserId);
+            if (taskItem == null)
+            {
+                return HttpNotFound();
+            }
+            ViewBag.GroupId = new SelectList(db.Groups, "Id", "Name", taskItem.GroupId);
+            ViewBag.StudyPlanId = new SelectList(db.StudyPlans.Where(s => s.UserId == currentUserId), "Id", "Name", taskItem.StudyPlanId);
+            ViewBag.SubjectId = new SelectList(db.Subjects.Where(s => s.UserId == currentUserId), "Id", "Name", taskItem.SubjectId);
+            return View(taskItem);
         }
 
+        // POST: TaskItems/Edit/5
+        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
+        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(TaskItem model)
+        public ActionResult Edit([Bind(Include = "Id,Title,Description,Type,Priority,Status,DueDate,PlanedHours,SubjectId,IsGroupTask,GroupId,StudyPlanId")] TaskItem taskItem)
         {
-            var task = db.TaskItems.Include(t => t.Group).FirstOrDefault(t => t.Id == model.Id);
-            if (task == null) return HttpNotFound();
+            taskItem.UserId = User.Identity.GetUserId();
 
-            var userId = User.Identity.GetUserId();
-
-            if (!User.IsInRole("Admin"))
+            if (ModelState.IsValid)
             {
-                var canEdit = (task.IsGroupTask && task.Group != null && task.Group.TeamLeaderId == userId) ||
-                              (!task.IsGroupTask && task.UserId == userId);
-                if (!canEdit) return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+                db.Entry(taskItem).State = EntityState.Modified;
+                db.SaveChanges();
+                return RedirectToAction("Index");
             }
-
-            if (!ModelState.IsValid)
-            {
-                var users = db.Users.ToList();
-                var subjects = db.Subjects.Where(s => s.UserId == userId).ToList();
-                var groups = db.Groups.Where(g => g.TeamLeaderId == userId).ToList();
-
-                ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
-                ViewBag.SubjectId = new SelectList(subjects, "Id", "Name", model.SubjectId);
-                ViewBag.GroupId = new SelectList(groups, "Id", "Name", model.GroupId);
-                return View(model);
-            }
-
-            task.Title = model.Title;
-            task.Description = model.Description;
-            task.Type = model.Type;
-            task.DueDate = model.DueDate;
-            task.IsCompleted = model.IsCompleted;
-            task.SubjectId = model.SubjectId;
-            task.IsGroupTask = model.IsGroupTask;
-            task.GroupId = model.GroupId;
-
-            db.SaveChanges();
-            return RedirectToAction("Index");
+            return View(taskItem);
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Finish(int id)
-        {
-            var task = db.TaskItems.Include(t => t.Group).Include(t => t.Group.Members).FirstOrDefault(t => t.Id == id);
-            if (task == null) return HttpNotFound();
-
-            if (!User.IsInRole("Admin"))
-            {
-                var userId = User.Identity.GetUserId();
-                var canFinish = (!task.IsGroupTask && task.UserId == userId) ||
-                                (task.IsGroupTask && task.Group != null && task.Group.Members.Any(m => m.UserId == userId));
-                if (!canFinish) return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
-            }
-
-            task.IsCompleted = true;
-            db.SaveChanges();
-            return RedirectToAction("Index");
-        }
-
+        // GET: TaskItems/Delete/5
         public ActionResult Delete(int? id)
         {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var task = db.TaskItems.Include(t => t.Group).FirstOrDefault(t => t.Id == id);
-            if (task == null) return HttpNotFound();
-
-            if (!User.IsInRole("Admin"))
+            if (id == null)
             {
-                var userId = User.Identity.GetUserId();
-                var canDelete = (task.IsGroupTask && task.Group != null && task.Group.TeamLeaderId == userId) ||
-                                (!task.IsGroupTask && task.UserId == userId);
-                if (!canDelete) return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            return View(task);
+            string currentUserId = User.Identity.GetUserId();
+            TaskItem taskItem = db.TaskItems.FirstOrDefault(t => t.Id == id && t.UserId == currentUserId);
+            if (taskItem == null)
+            {
+                return HttpNotFound();
+            }
+            return View(taskItem);
         }
 
+        // POST: TaskItems/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)
         {
-            var task = db.TaskItems.Find(id);
-            if (task == null) return HttpNotFound();
-            db.TaskItems.Remove(task);
-            db.SaveChanges();
+            string currentUserId = User.Identity.GetUserId();
+            TaskItem taskItem = db.TaskItems.FirstOrDefault(t => t.Id == id && t.UserId == currentUserId);
+            if (taskItem != null)
+            {
+                db.TaskItems.Remove(taskItem);
+                db.SaveChanges();
+            }
             return RedirectToAction("Index");
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                db.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }

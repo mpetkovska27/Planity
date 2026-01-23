@@ -15,10 +15,10 @@
             @Html.DisplayNameFor(model => model.Group.Name)
         </th>
         <th>
-            @Html.DisplayNameFor(model => model.Subject.Name)
+            @Html.DisplayNameFor(model => model.StudyPlan.Name)
         </th>
         <th>
-            @Html.DisplayNameFor(model => model.User.FullName)
+            @Html.DisplayNameFor(model => model.Subject.Name)
         </th>
         <th>
             @Html.DisplayNameFor(model => model.Title)
@@ -30,10 +30,16 @@
             @Html.DisplayNameFor(model => model.Type)
         </th>
         <th>
+            @Html.DisplayNameFor(model => model.Priority)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Status)
+        </th>
+        <th>
             @Html.DisplayNameFor(model => model.DueDate)
         </th>
         <th>
-            @Html.DisplayNameFor(model => model.IsCompleted)
+            @Html.DisplayNameFor(model => model.PlanedHours)
         </th>
         <th>
             @Html.DisplayNameFor(model => model.IsGroupTask)
@@ -47,10 +53,10 @@
             @Html.DisplayFor(modelItem => item.Group.Name)
         </td>
         <td>
-            @Html.DisplayFor(modelItem => item.Subject.Name)
+            @Html.DisplayFor(modelItem => item.StudyPlan.Name)
         </td>
         <td>
-            @Html.DisplayFor(modelItem => item.User.FullName)
+            @Html.DisplayFor(modelItem => item.Subject.Name)
         </td>
         <td>
             @Html.DisplayFor(modelItem => item.Title)
@@ -62,10 +68,16 @@
             @Html.DisplayFor(modelItem => item.Type)
         </td>
         <td>
+            @Html.DisplayFor(modelItem => item.Priority)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.Status)
+        </td>
+        <td>
             @Html.DisplayFor(modelItem => item.DueDate)
         </td>
         <td>
-            @Html.DisplayFor(modelItem => item.IsCompleted)
+            @Html.DisplayFor(modelItem => item.PlanedHours)
         </td>
         <td>
             @Html.DisplayFor(modelItem => item.IsGroupTask)

@@ -1,118 +1,144 @@
-﻿using System.Data.Entity;
+﻿using Microsoft.AspNet.Identity;
+using Planity.Models;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.Entity;
 using System.Linq;
 using System.Net;
+using System.Web;
 using System.Web.Mvc;
-using Microsoft.AspNet.Identity;
-using Planity.Models;
 
 namespace Planity.Controllers
 {
-    [Authorize(Roles = "Student,TimLeader,Admin")]
     public class SubjectsController : Controller
     {
-        private readonly ApplicationDbContext db = new ApplicationDbContext();
+        private ApplicationDbContext db = new ApplicationDbContext();
 
+        // GET: Subjects
         public ActionResult Index()
         {
-            var userId = User.IsInRole("Admin") ? null : User.Identity.GetUserId();
-            var q = db.Subjects.AsQueryable();
-            if (userId != null) q = q.Where(s => s.UserId == userId);
-            return View(q.ToList());
+            string currentUserId = User.Identity.GetUserId();
+            var subjects = db.Subjects
+                             .Where(s => s.UserId == currentUserId)
+                             .Include(s => s.User)
+                             .ToList();
+            return View(subjects);
         }
 
+        // GET: Subjects/Details/5
         public ActionResult Details(int? id)
         {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var subject = db.Subjects.Find(id);
-            if (subject == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && subject.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            string currentUserId = User.Identity.GetUserId();
+            Subject subject = db.Subjects.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+            if (subject == null)
+            {
+                return HttpNotFound();
+            }
             return View(subject);
         }
 
+        // GET: Subjects/Create
         public ActionResult Create()
         {
-            var users = db.Users.ToList();
-            ViewBag.UserId = new SelectList(users, "Id", "UserName");
             return View();
         }
 
+        // POST: Subjects/Create
+        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
+        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Subject subject)
+        public ActionResult Create([Bind(Include = "Id,Name,Year,Semester,IsCompleted,Credits,UserId")] Subject subject)
         {
+            subject.UserId = User.Identity.GetUserId();
+
             if (ModelState.IsValid)
             {
-                if (!User.IsInRole("Admin"))
-                    subject.UserId = User.Identity.GetUserId();
                 db.Subjects.Add(subject);
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
-            
-            var users = db.Users.ToList();
-            ViewBag.UserId = new SelectList(users, "Id", "UserName", subject.UserId);
+
             return View(subject);
         }
 
+        // GET: Subjects/Edit/5
         public ActionResult Edit(int? id)
         {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var subject = db.Subjects.Find(id);
-            if (subject == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && subject.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
-            
-            var users = db.Users.ToList();
-            ViewBag.UserId = new SelectList(users, "Id", "UserName", subject.UserId);
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            string currentUserId = User.Identity.GetUserId();
+            Subject subject = db.Subjects.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+            if (subject == null)
+            {
+                return HttpNotFound();
+            }
             return View(subject);
         }
 
+        // POST: Subjects/Edit/5
+        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
+        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(Subject model)
+        public ActionResult Edit([Bind(Include = "Id,Name,Year,Semester,IsCompleted,Credits")] Subject subject)
         {
-            var subject = db.Subjects.Find(model.Id);
-            if (subject == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && subject.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            subject.UserId = User.Identity.GetUserId();
 
             if (ModelState.IsValid)
             {
-                subject.Name = model.Name;
-                subject.Year = model.Year;
-                subject.Semester = model.Semester;
+                db.Entry(subject).State = EntityState.Modified;
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
-            
-            var users = db.Users.ToList();
-            ViewBag.UserId = new SelectList(users, "Id", "UserName", model.UserId);
-            return View(model);
-        }
-
-        public ActionResult Delete(int? id)
-        {
-            if (id == null) return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            var subject = db.Subjects.Find(id);
-            if (subject == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && subject.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             return View(subject);
         }
 
+        // GET: Subjects/Delete/5
+        public ActionResult Delete(int? id)
+        {
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            string currentUserId = User.Identity.GetUserId();
+            Subject subject = db.Subjects.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+            if (subject == null)
+            {
+                return HttpNotFound();
+            }
+            return View(subject);
+        }
+
+        // POST: Subjects/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)
         {
-            var subject = db.Subjects.Find(id);
-            if (subject == null) return HttpNotFound();
-            if (!User.IsInRole("Admin") && subject.UserId != User.Identity.GetUserId())
-                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
-
-            db.Subjects.Remove(subject);
-            db.SaveChanges();
+            string currentUserId = User.Identity.GetUserId();
+            Subject subject = db.Subjects.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+            if (subject != null)
+            {
+                db.Subjects.Remove(subject);
+                db.SaveChanges();
+            }
             return RedirectToAction("Index");
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                db.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }
