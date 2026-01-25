@@ -11,6 +11,7 @@ using System.Web.Mvc;
 
 namespace Planity.Controllers
 {
+    [Authorize]
     public class GroupsController : Controller
     {
         private ApplicationDbContext db = new ApplicationDbContext();
@@ -18,6 +19,12 @@ namespace Planity.Controllers
         // GET: Groups
         public ActionResult Index()
         {
+            if (User.IsInRole("Admin"))
+            {
+                var allGroups = db.Groups.Include(g => g.TeamLeader).Include(g => g.Members).ToList();
+                return View(allGroups);
+            }
+
             string currentUserId = User.Identity.GetUserId();
             var groups = db.Groups
                 .Where(g => g.TeamLeaderId == currentUserId || g.Members.Any(m => m.UserId == currentUserId))
@@ -33,6 +40,8 @@ namespace Planity.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
 
+            string currentUserId = User.Identity.GetUserId();
+
             Group group = db.Groups
                 .Include(g => g.TeamLeader)
                 .Include(g => g.Members.Select(m => m.User))
@@ -43,10 +52,21 @@ namespace Planity.Controllers
             {
                 return HttpNotFound();
             }
+
+            bool isMember = group.Members.Any(m => m.UserId == currentUserId);
+            bool isLeader = group.TeamLeaderId == currentUserId;
+            bool isAdmin = User.IsInRole("Admin");
+
+            if (!isAdmin && !isLeader && !isMember)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden); // Немаш пристап!
+            }
+
             return View(group);
         }
 
         // GET: Groups/Create
+        [Authorize(Roles = "Admin,TeamLeader")]
         public ActionResult Create()
         {
             return View();
@@ -57,6 +77,7 @@ namespace Planity.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,TeamLeader")]
         public ActionResult Create([Bind(Include = "Id,Name")] Group group)
         {
             if (ModelState.IsValid)
@@ -81,6 +102,7 @@ namespace Planity.Controllers
         }
 
         // GET: Groups/Edit/5
+        [Authorize(Roles = "Admin,TeamLeader")]
         public ActionResult Edit(int? id)
         {
             if (id == null)
@@ -100,9 +122,10 @@ namespace Planity.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,TeamLeader")]
         public ActionResult Edit([Bind(Include = "Id,Name,TeamLeaderId")] Group group)
         {
-            if (group.TeamLeaderId != User.Identity.GetUserId())
+            if (group == null || (group.TeamLeaderId != User.Identity.GetUserId() && !User.IsInRole("Admin")))
             {
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             }
@@ -117,6 +140,7 @@ namespace Planity.Controllers
         }
 
         // GET: Groups/Delete/5
+        [Authorize(Roles = "Admin,TeamLeader")]
         public ActionResult Delete(int? id)
         {
             if (id == null)
@@ -134,10 +158,11 @@ namespace Planity.Controllers
         // POST: Groups/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,TeamLeader")]
         public ActionResult DeleteConfirmed(int id)
         {
             Group group = db.Groups.Find(id);
-            if (group.TeamLeaderId != User.Identity.GetUserId())
+            if (group == null || (group.TeamLeaderId != User.Identity.GetUserId() && !User.IsInRole("Admin")))
             {
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             }
@@ -151,19 +176,34 @@ namespace Planity.Controllers
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,TeamLeader")]
         public ActionResult AddMember(int groupId, string userEmail)
         {
             var group = db.Groups.Find(groupId);
-            if (group.TeamLeaderId != User.Identity.GetUserId())
+            if (group == null) return HttpNotFound();
+
+            bool isLeader = group.TeamLeaderId == User.Identity.GetUserId();
+            bool isAdmin = User.IsInRole("Admin");
+
+            if (!isLeader && !isAdmin)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             }
 
             var userToAdd = db.Users.FirstOrDefault(u => u.Email == userEmail);
-            if (userToAdd != null && !db.GroupMembers.Any(m => m.GroupId == groupId && m.UserId == userToAdd.Id))
+            if (userToAdd == null)
+            {
+                TempData["Error"] = "User with that email was not found.";
+            }
+            else if (db.GroupMembers.Any(m => m.GroupId == groupId && m.UserId == userToAdd.Id))
+            {
+                TempData["Error"] = "User is already a member of this group.";
+            }
+            else
             {
                 db.GroupMembers.Add(new GroupMember { GroupId = groupId, UserId = userToAdd.Id });
                 db.SaveChanges();
+                TempData["Success"] = "Member added successfully!";
             }
 
             return RedirectToAction("Details", new { id = groupId });
@@ -171,6 +211,7 @@ namespace Planity.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,TeamLeader")]
         public ActionResult RemoveMember(int groupId, string userId)
         {
             var group = db.Groups.Find(groupId);

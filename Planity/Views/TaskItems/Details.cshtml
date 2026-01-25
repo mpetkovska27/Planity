@@ -1,7 +1,30 @@
 ﻿@model Planity.Models.TaskItem
+@using Microsoft.AspNet.Identity
 
 @{
     ViewBag.Title = "Details";
+    bool isAdmin = User.IsInRole("Admin");
+    string currentUserId = User.Identity.GetUserId();
+    bool isOwner = Model.UserId == currentUserId;
+    bool isMember = Model.IsGroupTask && Model.Group != null && Model.Group.Members != null && Model.Group.Members.Any(m => m != null && m.UserId == currentUserId);
+    bool isLeader = Model.IsGroupTask && Model.Group != null && Model.Group.TeamLeaderId == currentUserId;
+    bool canEdit = isAdmin || (isOwner && !Model.IsGroupTask) || (Model.IsGroupTask && (isAdmin || isLeader));
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 
 <h2>Details</h2>
@@ -10,20 +33,23 @@
     <h4>TaskItem</h4>
     <hr />
     <dl class="dl-horizontal">
-        <dt>
-            @Html.DisplayNameFor(model => model.Group.Name)
-        </dt>
+        @if (Model.IsGroupTask && Model.Group != null)
+        {
+            <dt>
+                @Html.DisplayNameFor(model => model.Group.Name)
+            </dt>
 
-        <dd>
-            @Html.DisplayFor(model => model.Group.Name)
-        </dd>
+            <dd>
+                @Html.DisplayFor(model => model.Group.Name)
+            </dd>
+        }
 
         <dt>
             @Html.DisplayNameFor(model => model.StudyPlan.Name)
         </dt>
 
         <dd>
-            @Html.DisplayFor(model => model.StudyPlan.Name)
+            @(Model.StudyPlan?.Name ?? "-")
         </dd>
 
         <dt>
@@ -31,7 +57,7 @@
         </dt>
 
         <dd>
-            @Html.DisplayFor(model => model.Subject.Name)
+            @(Model.Subject?.Name ?? "-")
         </dd>
 
         <dt>
@@ -79,7 +105,22 @@
         </dt>
 
         <dd>
-            @Html.DisplayFor(model => model.Status)
+            @if (Model.Status == Planity.Models.TaskStatus.Done)
+            {
+                <span class="badge bg-success">@Model.Status</span>
+            }
+            else if (Model.Status == Planity.Models.TaskStatus.InProgress)
+            {
+                <span class="badge bg-warning">@Model.Status</span>
+            }
+            else if (Model.Status == Planity.Models.TaskStatus.Overdue)
+            {
+                <span class="badge bg-danger">@Model.Status</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary">@Model.Status</span>
+            }
         </dd>
 
         <dt>
@@ -109,6 +150,10 @@
     </dl>
 </div>
 <p>
-    @Html.ActionLink("Edit", "Edit", new { id = Model.Id }) |
-    @Html.ActionLink("Back to List", "Index")
+    @if (canEdit)
+    {
+        @Html.ActionLink("Edit", "Edit", new { id = Model.Id }, new { @class = "btn btn-warning" })
+        @Html.ActionLink("Delete", "Delete", new { id = Model.Id }, new { @class = "btn btn-danger" })
+    }
+    @Html.ActionLink("Back to List", "Index", null, new { @class = "btn btn-secondary" })
 </p>

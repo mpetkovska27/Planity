@@ -1,0 +1,79 @@
+﻿@model IEnumerable<Planity.Models.ApplicationUser>
+
+@{
+    ViewBag.Title = "User Management";
+    var rolesDict = ViewBag.RolesDictionary as Dictionary<string, string>;
+}
+
+<div class="container mt-4">
+    <h2>User Management</h2>
+    <hr />
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <table class="table table-hover shadow-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Current Role</th>
+                <th class="text-center">Role Actions</th>
+                <th class="text-center">Manage</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Model)
+            {
+                <tr>
+                    <td><strong>@user.UserName</strong></td>
+                    <td>@user.Email</td>
+                    <td>
+                        @foreach (var role in user.Roles)
+                        {
+                            var roleName = rolesDict[role.RoleId];
+                            var badgeClass = roleName == "Admin" ? "bg-danger" :
+                                             roleName == "TimLeader" ? "bg-warning text-dark" : "bg-info text-dark";
+
+                            <span class="badge @badgeClass">@roleName</span>
+                         }
+                    </td>
+                    <td class="text-center">
+                        @using (Html.BeginForm("ToggleRole", "UserAdmin", new { userId = user.Id }, FormMethod.Post))
+                        {
+                            @Html.AntiForgeryToken()
+
+                            
+                            bool isUserAdmin = user.Roles.Any(r => rolesDict.ContainsKey(r.RoleId) && rolesDict[r.RoleId] == "Admin");
+
+                            if (!isUserAdmin)
+                            {
+                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-sync-alt"></i> Switch Role
+                                </button>
+                            }
+                            else
+                            {
+                                <small class="text-muted">Locked</small>
+                            }
+                        }
+                    </td>
+                    <td class="text-center">
+                        @if (user.UserName != User.Identity.Name)
+                        {
+                            using (Html.BeginForm("DeleteUser", "UserAdmin", new { userId = user.Id }, FormMethod.Post, new { onsubmit = "return confirm('Are you sure you want to delete this user?');" }))
+                            {
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            }
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

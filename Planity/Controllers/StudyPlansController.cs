@@ -11,6 +11,7 @@ using System.Web.Mvc;
 
 namespace Planity.Controllers
 {
+    [Authorize]
     public class StudyPlansController : Controller
     {
         private ApplicationDbContext db = new ApplicationDbContext();
@@ -19,6 +20,16 @@ namespace Planity.Controllers
         public ActionResult Index()
         {
             string currentUserId = User.Identity.GetUserId();
+
+            if (User.IsInRole("Admin"))
+            {
+                var allPlans = db.StudyPlans
+                    .Include(s => s.User)
+                    .OrderBy(s => s.StartDate)
+                    .ToList();
+                return View(allPlans);
+            }
+
             var studyPlans = db.StudyPlans
                 .Where(s => s.UserId == currentUserId)
                 .OrderBy(s => s.StartDate)
@@ -35,11 +46,13 @@ namespace Planity.Controllers
             }
 
             string currentUserId = User.Identity.GetUserId();
+
             StudyPlan studyPlan = db.StudyPlans
                 .Include(s => s.Tasks)
-                .FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+                .Include(s => s.User) 
+                .FirstOrDefault(s => s.Id == id);
 
-            if (studyPlan == null)
+            if (studyPlan == null || (!User.IsInRole("Admin") && studyPlan.UserId != currentUserId))
             {
                 return HttpNotFound();
             }
@@ -80,9 +93,9 @@ namespace Planity.Controllers
             }
 
             string currentUserId = User.Identity.GetUserId();
-            StudyPlan studyPlan = db.StudyPlans.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+            StudyPlan studyPlan = db.StudyPlans.Find(id);
 
-            if (studyPlan == null)
+            if (studyPlan == null || (!User.IsInRole("Admin") && studyPlan.UserId != currentUserId))
             {
                 return HttpNotFound();
             }
@@ -96,7 +109,12 @@ namespace Planity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "Id,Name,StartDate,EndDate")] StudyPlan studyPlan)
         {
-            studyPlan.UserId = User.Identity.GetUserId();
+            string currentUserId = User.Identity.GetUserId();
+            
+            if (!User.IsInRole("Admin") && studyPlan.UserId != currentUserId)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            }
 
             if (ModelState.IsValid)
             {
@@ -116,9 +134,9 @@ namespace Planity.Controllers
             }
 
             string currentUserId = User.Identity.GetUserId();
-            StudyPlan studyPlan = db.StudyPlans.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+            StudyPlan studyPlan = db.StudyPlans.Include(s => s.User).FirstOrDefault(s => s.Id == id);
 
-            if (studyPlan == null)
+            if (studyPlan == null || (!User.IsInRole("Admin") && studyPlan.UserId != currentUserId))
             {
                 return HttpNotFound();
             }
@@ -131,9 +149,9 @@ namespace Planity.Controllers
         public ActionResult DeleteConfirmed(int id)
         {
             string currentUserId = User.Identity.GetUserId();
-            StudyPlan studyPlan = db.StudyPlans.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
+            StudyPlan studyPlan = db.StudyPlans.Find(id);
 
-            if (studyPlan != null)
+            if (studyPlan != null && (studyPlan.UserId == currentUserId || User.IsInRole("Admin")))
             {
                 var tasksInPlan = db.TaskItems.Where(t => t.StudyPlanId == id);
                 foreach (var task in tasksInPlan)

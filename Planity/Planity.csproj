@@ -178,6 +178,7 @@
     <Compile Include="Controllers\StudyPlansController.cs" />
     <Compile Include="Controllers\SubjectsController.cs" />
     <Compile Include="Controllers\TaskItemsController.cs" />
+    <Compile Include="Controllers\UserAdminController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -188,6 +189,10 @@
     <Compile Include="Migrations\202601231619465_FinalModelSetup.cs" />
     <Compile Include="Migrations\202601231619465_FinalModelSetup.Designer.cs">
       <DependentUpon>202601231619465_FinalModelSetup.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202601251145179_RegisterModelUpdated.cs" />
+    <Compile Include="Migrations\202601251145179_RegisterModelUpdated.Designer.cs">
+      <DependentUpon>202601251145179_RegisterModelUpdated.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
@@ -509,7 +514,6 @@
     <Content Include="Views\Manage\ManageLogins.cshtml" />
     <Content Include="Views\Manage\SetPassword.cshtml" />
     <Content Include="Views\Manage\VerifyPhoneNumber.cshtml" />
-    <Content Include="Views\Shared\Lockout.cshtml" />
     <Content Include="Views\Shared\_LoginPartial.cshtml" />
     <Content Include="Views\Dashboard\Index.cshtml" />
     <Content Include="Views\Progress\Index.cshtml" />
@@ -538,6 +542,7 @@
     <Content Include="Views\StudyPlans\Details.cshtml" />
     <Content Include="Views\StudyPlans\Edit.cshtml" />
     <Content Include="Views\StudyPlans\Index.cshtml" />
+    <Content Include="Views\UserAdmin\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
@@ -575,6 +580,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202601231619465_FinalModelSetup.resx">
       <DependentUpon>202601231619465_FinalModelSetup.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202601251145179_RegisterModelUpdated.resx">
+      <DependentUpon>202601251145179_RegisterModelUpdated.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

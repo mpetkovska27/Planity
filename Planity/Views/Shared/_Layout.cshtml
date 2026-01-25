@@ -13,9 +13,9 @@
 <body>
     <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark">
         <div class="container-fluid">
-           <a href="@Url.Action("Index", "Home")" class="navbar-brand">
-            <img src="~/Images/logo-transparent.png" alt="Planity" class="navbar-logo" />
-           </a>
+            <a href="@Url.Action("Index", "Home")" class="navbar-brand">
+                <img src="~/Images/logo-transparent.png" alt="Planity" class="navbar-logo" />
+            </a>
             <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" title="Toggle navigation" aria-controls="navbarSupportedContent"
                     aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -28,10 +28,12 @@
                         <li>@Html.ActionLink("Dashboard", "Index", "Dashboard", new { area = "" }, new { @class = "nav-link" })</li>
                         <li>@Html.ActionLink("Progress", "Index", "Progress", new { area = "" }, new { @class = "nav-link" })</li>
                         <li>@Html.ActionLink("Study Plan", "Index", "StudyPlans", new { area = "" }, new { @class = "nav-link" })</li>
-
-                        if (User.IsInRole("TimLeader") || User.IsInRole("Admin"))
+                        <li>@Html.ActionLink("Groups", "Index", "Groups", new { area = "" }, new { @class = "nav-link" })</li>
+                        if (User.IsInRole("Admin"))
                         {
-                            <li>@Html.ActionLink("Groups", "Index", "Groups", new { area = "" }, new { @class = "nav-link" })</li>
+                            <li class="nav-item">
+                                @Html.ActionLink("Admin Panel", "Index", "UserAdmin", new { area = "" }, new { @class = "nav-link text-warning fw-bold" })
+                            </li>
                         }
                     }
                 </ul>

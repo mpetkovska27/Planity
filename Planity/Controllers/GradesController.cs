@@ -11,6 +11,7 @@ using System.Web.Mvc;
 
 namespace Planity.Controllers
 {
+    [Authorize]
     public class GradesController : Controller
     {
         private ApplicationDbContext db = new ApplicationDbContext();
@@ -19,6 +20,17 @@ namespace Planity.Controllers
         public ActionResult Index()
         {
             string currentUserId = User.Identity.GetUserId();
+
+            if (User.IsInRole("Admin"))
+            {
+                var allGrades = db.Grades
+                    .Include(g => g.Subject)
+                    .Include(g => g.User)
+                    .OrderByDescending(g => g.Date)
+                    .ToList();
+                return View(allGrades);
+            }
+
             var grades = db.Grades
                 .Where(g => g.UserId == currentUserId)
                 .Include(g => g.Subject)
@@ -35,7 +47,7 @@ namespace Planity.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
             Grade grade = db.Grades.Include(g => g.Subject).FirstOrDefault(g => g.Id == id);
-            if (grade == null || grade.UserId != User.Identity.GetUserId())
+            if (grade == null || (!User.IsInRole("Admin") && grade.UserId != User.Identity.GetUserId()))
             {
                 return HttpNotFound();
             }
@@ -78,7 +90,7 @@ namespace Planity.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
             Grade grade = db.Grades.Find(id);
-            if (grade == null || grade.UserId != User.Identity.GetUserId())
+            if (grade == null || (!User.IsInRole("Admin") && grade.UserId != User.Identity.GetUserId()))
             {
                 return HttpNotFound();
             }
@@ -113,7 +125,7 @@ namespace Planity.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
             Grade grade = db.Grades.Include(g => g.Subject).FirstOrDefault(g => g.Id == id);
-            if (grade == null || grade.UserId != User.Identity.GetUserId())
+            if (grade == null || (!User.IsInRole("Admin") && grade.UserId != User.Identity.GetUserId()))
             {
                 return HttpNotFound();
             }

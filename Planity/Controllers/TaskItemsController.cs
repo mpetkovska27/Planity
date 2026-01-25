@@ -11,6 +11,7 @@ using System.Web.Mvc;
 
 namespace Planity.Controllers
 {
+    [Authorize]
     public class TaskItemsController : Controller
     {
         private ApplicationDbContext db = new ApplicationDbContext();
@@ -19,13 +20,25 @@ namespace Planity.Controllers
         public ActionResult Index()
         {
             string currentUserId = User.Identity.GetUserId();
-            var taskItems = db.TaskItems
-                .Where(t => t.UserId == currentUserId)
-                .Include(t => t.Group)
-                .Include(t => t.StudyPlan)
-                .Include(t => t.Subject)
-                .ToList();
-            return View(taskItems);
+            var query = db.TaskItems
+                        .Include(t => t.Group)
+                        .Include(t => t.StudyPlan)
+                        .Include(t => t.Subject)
+                        .Include(t => t.User);
+            //za admin
+            if (User.IsInRole("Admin"))
+            {
+                return View(query.ToList());
+            }
+            //za teamleader - gleda svoi zadaci i kade sto e lider 
+            if (User.IsInRole("TimLeader"))
+            {
+                var tlTasks = query.Where(t => t.UserId == currentUserId || (t.IsGroupTask && t.Group.TeamLeaderId == currentUserId)).ToList();
+                return View(tlTasks);
+            }
+            //za student gleda samo svoi i grupni od grupi koi e clen
+            var studentTasks = query.Where(t => t.UserId == currentUserId || (t.IsGroupTask && t.Group.Members.Any(m => m.UserId == currentUserId))).ToList();
+            return View(studentTasks);
         }
 
         // GET: TaskItems/Details/5
@@ -36,13 +49,24 @@ namespace Planity.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
             string currentUserId = User.Identity.GetUserId();
-            TaskItem taskItem = db.TaskItems.FirstOrDefault(t => t.Id == id && t.UserId == currentUserId);
+            var taskItem = db.TaskItems.Include(t => t.Group.Members).FirstOrDefault(t => t.Id == id);
+
             if (taskItem == null)
             {
                 return HttpNotFound();
             }
+            bool isAdmin = User.IsInRole("Admin");
+            bool isOwner = taskItem.UserId == currentUserId;
+            bool isMember = taskItem.IsGroupTask && taskItem.Group.Members.Any(m => m.UserId == currentUserId);
+            bool isLeader = taskItem.IsGroupTask && taskItem.Group.TeamLeaderId == currentUserId;
+
+            if (!isAdmin && !isOwner && !isMember && !isLeader) 
+            { 
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden); 
+            }
             return View(taskItem);
         }
+
 
         // GET: TaskItems/Create
         public ActionResult Create()
@@ -59,11 +83,9 @@ namespace Planity.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "Id,Title,Description,Type,Priority,Status,DueDate,PlanedHours,SubjectId,IsGroupTask,GroupId,StudyPlanId")] TaskItem taskItem)
+        public ActionResult Create([Bind(Include = "Id,Title,Description,Type,Priority,Status,DueDate,PlanedHours,SubjectId,IsGroupTask,GroupId,StudyPlanId,UserId")] TaskItem taskItem)
         {
-            taskItem.UserId = User.Identity.GetUserId();
-
-            taskItem.UserId = User.Identity.GetUserId();
+            if (string.IsNullOrEmpty(taskItem.UserId)) taskItem.UserId = User.Identity.GetUserId();
 
             if (ModelState.IsValid)
             {
@@ -71,10 +93,6 @@ namespace Planity.Controllers
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
-
-            ViewBag.GroupId = new SelectList(db.Groups, "Id", "Name", taskItem.GroupId);
-            ViewBag.StudyPlanId = new SelectList(db.StudyPlans.Where(s => s.UserId == taskItem.UserId), "Id", "Name", taskItem.StudyPlanId);
-            ViewBag.SubjectId = new SelectList(db.Subjects.Where(s => s.UserId == taskItem.UserId), "Id", "Name", taskItem.SubjectId);
             return View(taskItem);
         }
 
@@ -85,9 +103,10 @@ namespace Planity.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
+            TaskItem taskItem = db.TaskItems.Find(id);
             string currentUserId = User.Identity.GetUserId();
-            TaskItem taskItem = db.TaskItems.FirstOrDefault(t => t.Id == id && t.UserId == currentUserId);
-            if (taskItem == null)
+
+            if (taskItem == null || (!User.IsInRole("Admin") && taskItem.UserId != currentUserId))
             {
                 return HttpNotFound();
             }
@@ -104,7 +123,10 @@ namespace Planity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "Id,Title,Description,Type,Priority,Status,DueDate,PlanedHours,SubjectId,IsGroupTask,GroupId,StudyPlanId")] TaskItem taskItem)
         {
-            taskItem.UserId = User.Identity.GetUserId();
+            if (!User.IsInRole("Admin") && taskItem.UserId != User.Identity.GetUserId()) 
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            }
 
             if (ModelState.IsValid)
             {
@@ -122,12 +144,12 @@ namespace Planity.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            string currentUserId = User.Identity.GetUserId();
-            TaskItem taskItem = db.TaskItems.FirstOrDefault(t => t.Id == id && t.UserId == currentUserId);
-            if (taskItem == null)
-            {
-                return HttpNotFound();
+            TaskItem taskItem = db.TaskItems.FirstOrDefault(t => t.Id == id);
+            if (taskItem == null || (!User.IsInRole("Admin") && taskItem.UserId != User.Identity.GetUserId())) 
+            { 
+                return HttpNotFound(); 
             }
+
             return View(taskItem);
         }
 
@@ -136,9 +158,8 @@ namespace Planity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)
         {
-            string currentUserId = User.Identity.GetUserId();
-            TaskItem taskItem = db.TaskItems.FirstOrDefault(t => t.Id == id && t.UserId == currentUserId);
-            if (taskItem != null)
+            TaskItem taskItem = db.TaskItems.Find(id);
+            if (taskItem != null && (User.IsInRole("Admin") || taskItem.UserId == User.Identity.GetUserId()))
             {
                 db.TaskItems.Remove(taskItem);
                 db.SaveChanges();

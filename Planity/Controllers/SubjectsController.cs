@@ -11,6 +11,7 @@ using System.Web.Mvc;
 
 namespace Planity.Controllers
 {
+    [Authorize]
     public class SubjectsController : Controller
     {
         private ApplicationDbContext db = new ApplicationDbContext();
@@ -18,11 +19,13 @@ namespace Planity.Controllers
         // GET: Subjects
         public ActionResult Index()
         {
+            if (User.IsInRole("Admin"))
+            {
+                var allSubjects = db.Subjects.Include(s => s.User).ToList();
+                return View(allSubjects);
+            }
             string currentUserId = User.Identity.GetUserId();
-            var subjects = db.Subjects
-                             .Where(s => s.UserId == currentUserId)
-                             .Include(s => s.User)
-                             .ToList();
+            var subjects = db.Subjects.Where(s => s.UserId == currentUserId).Include(s => s.User).ToList();
             return View(subjects);
         }
 
@@ -33,9 +36,10 @@ namespace Planity.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
+            Subject subject = db.Subjects.Include(s => s.User).FirstOrDefault(s => s.Id == id);
             string currentUserId = User.Identity.GetUserId();
-            Subject subject = db.Subjects.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
-            if (subject == null)
+
+            if (subject == null || (!User.IsInRole("Admin") && subject.UserId != currentUserId))
             {
                 return HttpNotFound();
             }
@@ -56,14 +60,12 @@ namespace Planity.Controllers
         public ActionResult Create([Bind(Include = "Id,Name,Year,Semester,IsCompleted,Credits,UserId")] Subject subject)
         {
             subject.UserId = User.Identity.GetUserId();
-
             if (ModelState.IsValid)
             {
                 db.Subjects.Add(subject);
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
-
             return View(subject);
         }
 
@@ -74,9 +76,11 @@ namespace Planity.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
+
+            Subject subject = db.Subjects.Find(id);
             string currentUserId = User.Identity.GetUserId();
-            Subject subject = db.Subjects.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
-            if (subject == null)
+
+            if (subject == null || (!User.IsInRole("Admin") && subject.UserId != currentUserId))
             {
                 return HttpNotFound();
             }
@@ -90,7 +94,10 @@ namespace Planity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "Id,Name,Year,Semester,IsCompleted,Credits")] Subject subject)
         {
-            subject.UserId = User.Identity.GetUserId();
+            if (!User.IsInRole("Admin") && subject.UserId != User.Identity.GetUserId())
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            }
 
             if (ModelState.IsValid)
             {
@@ -108,9 +115,8 @@ namespace Planity.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            string currentUserId = User.Identity.GetUserId();
-            Subject subject = db.Subjects.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
-            if (subject == null)
+            Subject subject = db.Subjects.Include(s => s.User).FirstOrDefault(s => s.Id == id);
+            if (subject == null || (!User.IsInRole("Admin") && subject.UserId != User.Identity.GetUserId()))
             {
                 return HttpNotFound();
             }
@@ -122,9 +128,8 @@ namespace Planity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)
         {
-            string currentUserId = User.Identity.GetUserId();
-            Subject subject = db.Subjects.FirstOrDefault(s => s.Id == id && s.UserId == currentUserId);
-            if (subject != null)
+            Subject subject = db.Subjects.Find(id);
+            if (subject != null && (User.IsInRole("Admin") || subject.UserId == User.Identity.GetUserId()))
             {
                 db.Subjects.Remove(subject);
                 db.SaveChanges();
