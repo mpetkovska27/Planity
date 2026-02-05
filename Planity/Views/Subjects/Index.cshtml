@@ -1,4 +1,5 @@
 ﻿@model IEnumerable<Planity.Models.Subject>
+@using System
 
 @{
     ViewBag.Title = "My Subjects";
@@ -11,7 +12,7 @@
     @Html.ActionLink("Create New", "Create", null, new { @class = "btn btn-primary" })
 </p>
 
-<div class="row" style="margin-bottom: 20px; background-color: #f8f9fa; padding: 15px; border-radius: 5px;">
+<div class="row subjects-filters">
     <div class="col-md-4">
         <label>Search:</label>
         <input type="text" id="searchInput" class="form-control" placeholder="Search Subject Name..." />
@@ -34,7 +35,7 @@
     </div>
 </div>
 
-<table class="table table-hover" id="subjectsTable">
+<table class="table table-hover subjects-table" id="subjectsTable">
     <thead>
         <tr>
             @if (isAdmin)
@@ -59,29 +60,38 @@
 
         @foreach (var group in groupedSubjects)
         {
-            <tr class="info group-header-template" style="font-weight:bold; background-color: var(--secondary-color); display:none;">
+            var groupItems = group.ToList();
+            var completedCount = groupItems.Count(item =>
+                item.IsCompleted ||
+                item.Grades.Any(g => g.Type != null && g.Type.Equals("Final", StringComparison.OrdinalIgnoreCase)));
+            var totalCount = groupItems.Count;
+
+            <tr class="info group-header-template" style="font-weight:bold; display:none;">
                 <td colspan="@(isAdmin ? 7 : 6)">
                     Year @group.Key.Year - Semester @group.Key.Semester
+                    <span class="group-count">@completedCount/@totalCount</span>
                 </td>
             </tr>
 
-            foreach (var item in group)
+            foreach (var item in groupItems)
             {
-                
                 var subjectTasks = item.Tasks.Where(t => t.SubjectId == item.Id).ToList();
                 var totalTasks = subjectTasks.Count;
                 var completedTasks = subjectTasks.Count(t => t.Status == Planity.Models.TaskStatus.Done);
                 var progress = totalTasks > 0 ? (int)((double)completedTasks / totalTasks * 100) : 0;
-                var finalGrade = item.Grades.OrderByDescending(g => g.Date).FirstOrDefault();
+                var finalGrade = item.Grades.FirstOrDefault(g => g.Type != null && g.Type.Equals("Final", StringComparison.OrdinalIgnoreCase))
+                    ?? item.Grades.OrderByDescending(g => g.Date).FirstOrDefault();
                 var gradeVal = finalGrade != null ? finalGrade.Value : 0;
+                var hasFinalGrade = finalGrade != null && finalGrade.Type != null && finalGrade.Type.Equals("Final", StringComparison.OrdinalIgnoreCase);
+                var isCompleted = item.IsCompleted || hasFinalGrade;
 
-                <tr class="subject-row" 
-                    data-year="@item.Year" 
-                    data-sem="@item.Semester" 
-                    data-name="@item.Name.ToLower()" 
+                <tr class="subject-row"
+                    data-year="@item.Year"
+                    data-sem="@item.Semester"
+                    data-name="@item.Name.ToLower()"
                     data-grade="@gradeVal"
-                    data-status="@(item.IsCompleted ? "completed" : "active")">
-                    
+                    data-status="@(isCompleted ? "completed" : "active")">
+
                     @if (isAdmin)
                     {
                         <td>@(item.User != null ? (item.User.UserName ?? item.User.Email) : "N/A")</td>
@@ -92,7 +102,7 @@
                     <td>@item.Credits</td>
                     <td style="width: 20%;">
                         <div class="progress" style="margin-bottom: 0;">
-                            <div class="progress-bar" role="progressbar" 
+                            <div class="progress-bar" role="progressbar"
                                  aria-valuenow="@progress" aria-valuemin="0" aria-valuemax="100"
                                  style="width: @progress%; background-color: var(--primary-color);">
                                 @progress%
@@ -100,7 +110,7 @@
                         </div>
                     </td>
                     <td>
-                        @if (item.IsCompleted)
+                        @if (isCompleted)
                         {
                             <span class="label" style="background-color: var(--neutral-color);">Completed</span>
                         }
@@ -124,7 +134,7 @@
                     </td>
                     <td>
                         @Html.ActionLink("Edit", "Edit", new { id = item.Id }) |
-                        @Html.ActionLink("Delete", "Delete", new { id = item.Id })
+                        <button class="btn btn-link" onclick="deleteSubject(@item.Id, '@item.Name')">Delete</button>
                     </td>
                 </tr>
             }
@@ -138,15 +148,20 @@
     <button class="btn btn-default" id="nextPage">Next</button>
 </div>
 
-@section Scripts {
+@using (Html.BeginForm(null, null, FormMethod.Post, new { id = "__AjaxAntiForgeryForm" }))
+{
+    @Html.AntiForgeryToken()
+}
+
+@section scripts {
     <script>
         var allRows = [];
         var currentPage = 1;
         var pageSize = 20;
         var isAdmin = @(isAdmin.ToString().ToLower());
+        var token = $('input[name="__RequestVerificationToken"]', $('#__AjaxAntiForgeryForm')).val();
 
         $(document).ready(function () {
-
             $('#tableBody .subject-row').each(function() {
                 allRows.push($(this));
             });
@@ -154,14 +169,14 @@
             $('#searchInput').on('keyup', function() { renderTable(); });
             $('#filterInput').on('change', function() { renderTable(); });
             $('#sortInput').on('change', function() { renderTable(); });
-            
+
             $('#prevPage').click(function() {
                 if (currentPage > 1) {
                     currentPage--;
-                    renderTable(false); 
+                    renderTable(false);
                 }
             });
-            
+
             $('#nextPage').click(function() {
                 currentPage++;
                 renderTable(false);
@@ -183,10 +198,10 @@
                 var row = allRows[i];
                 var name = row.data('name').toString();
                 var status = row.data('status');
-                
+
                 var matchesSearch = name.indexOf(searchText) > -1;
                 var matchesFilter = (filterStatus === 'all') || (status === filterStatus);
-                
+
                 if (matchesSearch && matchesFilter) {
                     filteredRows.push(row);
                 }
@@ -197,23 +212,17 @@
                     var yA = parseInt(a.data('year'));
                     var yB = parseInt(b.data('year'));
                     if (yA !== yB) return yA - yB;
-                    
                     var sA = parseInt(a.data('sem'));
                     var sB = parseInt(b.data('sem'));
                     return sA - sB;
                 } else if (sortBy === 'name') {
-                    var nA = a.data('name');
-                    var nB = b.data('name');
-                    return nA.localeCompare(nB);
+                    return a.data('name').localeCompare(b.data('name'));
                 } else if (sortBy === 'grade') {
-                    var gA = parseFloat(a.data('grade'));
-                    var gB = parseFloat(b.data('grade'));
-                    return gB - gA;
+                    return parseFloat(b.data('grade')) - parseFloat(a.data('grade'));
                 }
             });
 
-            var totalPages = Math.ceil(filteredRows.length / pageSize);
-            if (totalPages === 0) totalPages = 1;
+            var totalPages = Math.ceil(filteredRows.length / pageSize) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
 
             $('#pageInfo').text("Page " + currentPage + " of " + totalPages);
@@ -221,39 +230,42 @@
             $('#nextPage').prop('disabled', currentPage === totalPages);
 
             var start = (currentPage - 1) * pageSize;
-            var end = start + pageSize;
-            var pageRows = filteredRows.slice(start, end);
+            var pageRows = filteredRows.slice(start, start + pageSize);
 
-            var tbody = $('#tableBody');
-            tbody.empty();
-
+            var tbody = $('#tableBody').empty();
             var lastGroup = "";
             var colspan = isAdmin ? 7 : 6;
 
             $.each(pageRows, function(index, row) {
                 if (sortBy === 'default') {
-                    var year = row.data('year');
-                    var sem = row.data('sem');
-                    var groupKey = year + '-' + sem;
-
+                    var groupKey = row.data('year') + '-' + row.data('sem');
                     if (lastGroup !== groupKey) {
-                        var headerHtml = '<tr class="info" style="font-weight:bold; background-color: var(--secondary-color);">' +
-                                         '<td colspan="' + colspan + '">Year ' + year + ' - Semester ' + sem + '</td></tr>';
-                        tbody.append(headerHtml);
+                        var groupTotal = 0;
+                        var groupCompleted = 0;
+                        for (var i = 0; i < filteredRows.length; i++) {
+                            var candidate = filteredRows[i];
+                            if (candidate.data('year') + '-' + candidate.data('sem') === groupKey) {
+                                groupTotal++;
+                                if (candidate.data('status') === 'completed') groupCompleted++;
+                            }
+                        }
+                        tbody.append(
+                            '<tr class="info" style="font-weight:bold; background-color: var(--secondary-color);">' +
+                            '<td colspan="' + colspan + '">Year ' + row.data('year') + ' - Semester ' + row.data('sem') +
+                            '<span class="group-count">' + groupCompleted + '/' + groupTotal + '</span></td></tr>'
+                        );
                         lastGroup = groupKey;
                     }
                 }
                 tbody.append(row);
             });
-            
-            if (filteredRows.length === 0) {
-                 tbody.append('<tr><td colspan="' + colspan + '" class="text-center">No subjects found.</td></tr>');
-            }
+
+            if (filteredRows.length === 0) tbody.append('<tr><td colspan="' + colspan + '" class="text-center">No subjects found.</td></tr>');
         }
 
         function toggleStatus(id) {
-            $.post('@Url.Action("ToggleStatus")', { id: id }, function () {
-                location.reload(); 
+            $.post('@Url.Action("ToggleStatus")', { id: id, __RequestVerificationToken: token }, function (res) {
+                if (res.success) location.reload();
             });
         }
 
@@ -262,12 +274,9 @@
                 if (result) {
                     var grade = parseFloat(result);
                     if (!isNaN(grade) && grade >= 6 && grade <= 10) {
-                        $.post('@Url.Action("UpdateGrade")', { id: id, value: grade }, function (response) {
-                            if (response.success) {
-                                location.reload();
-                            } else {
-                                bootbox.alert("Error updating grade");
-                            }
+                        $.post('@Url.Action("UpdateGrade")', { id: id, value: grade, __RequestVerificationToken: token }, function (response) {
+                            if (response.success) location.reload();
+                            else bootbox.alert("Error updating grade");
                         });
                     } else {
                         bootbox.alert("Grade must be between 6 and 10.");
@@ -275,5 +284,92 @@
                 }
             });
         }
+
+        function deleteSubject(id, name) {
+            bootbox.confirm("Are you sure you want to delete subject: " + name + "?", function(result) {
+                if (result) {
+                    $.post('@Url.Action("Delete")', { id: id, __RequestVerificationToken: token }, function (res) {
+                        if (res.success) location.reload();
+                        else bootbox.alert("Error deleting subject.");
+                    });
+                }
+            });
+        }
     </script>
 }
+
+<style>
+    body {
+        background-color: #e0e9ef;
+    }
+
+    h2 {
+        color: #1f2a33;
+        font-weight: 700;
+    }
+
+    .subjects-filters {
+        margin-bottom: 20px;
+        background-color: rgba(255, 255, 255, 0.92);
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid rgba(31, 42, 51, 0.12);
+        box-shadow: 0 10px 24px rgba(31, 42, 51, 0.08);
+    }
+
+    .subjects-filters label {
+        color: #2b3944;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+
+    .subjects-table {
+        background-color: rgba(255, 255, 255, 0.96);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(31, 42, 51, 0.08);
+    }
+
+    .subjects-table thead th {
+        background-color: #23313b;
+        color: #f3f6f9;
+        border-bottom: none;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    .subjects-table tbody tr {
+        border-top: 1px solid rgba(31, 42, 51, 0.08);
+    }
+
+    .subjects-table tbody tr:hover {
+        background-color: rgba(35, 49, 59, 0.06);
+    }
+
+    .subjects-table .progress {
+        background-color: rgba(31, 42, 51, 0.12);
+    }
+
+    .subjects-table .label {
+        color: #ffffff;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 8px;
+    }
+
+    .subjects-table .badge {
+        color: #ffffff;
+        font-weight: 600;
+    }
+
+    .subjects-table .group-header-template td {
+        background-color: #dfe7ee;
+        color: #1f2a33;
+    }
+
+    .subjects-table .group-count {
+        float: right;
+        color: #465560;
+        font-weight: 600;
+    }
+</style>

@@ -1,81 +1,468 @@
 ﻿@model Planity.Models.Subject
+@using System
 @using Microsoft.AspNet.Identity
 
 @{
-    ViewBag.Title = "Details";
+    ViewBag.Title = "Subject Details";
     bool isAdmin = User.IsInRole("Admin");
     string currentUserId = User.Identity.GetUserId();
     bool canEdit = isAdmin || Model.UserId == currentUserId;
+    var subjectTasks = Model.Tasks.Where(t => t.SubjectId == Model.Id).ToList();
+    var totalTasks = subjectTasks.Count;
+    var completedTasks = subjectTasks.Count(t => t.Status == Planity.Models.TaskStatus.Done);
+    var progress = totalTasks > 0 ? (int)Math.Round((double)completedTasks / totalTasks * 100) : 0;
+    var grades = Model.Grades.OrderByDescending(g => g.Date).ToList();
+    var finalGrade = grades.FirstOrDefault(g => g.Type == "Final");
 }
 
-<h2>Details</h2>
+<div class="container-fluid subject-dashboard">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4 subject-hero uiverse-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap">
+                        <div>
+                            <h2 class="mb-1">@Model.Name</h2>
+                            <div class="text-muted">
+                                Year @Model.Year • Semester @Model.Semester
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-dark me-1">Credits @Model.Credits</span>
+                            <span id="subjectStatusBadge" class="badge @(Model.IsCompleted ? "bg-success" : "bg-warning")">
+                                @(Model.IsCompleted ? "Completed" : "In Progress")
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Total Progress</span>
+                            <span id="progressValue" class="fw-bold">@progress%</span>
+                        </div>
+                        <div class="progress progress-animated" style="height: 10px;">
+                            <div id="subjectProgressBar" class="progress-bar bg-primary" role="progressbar"
+                                 aria-valuenow="@progress" aria-valuemin="0" aria-valuemax="100"
+                                 style="width: @progress%;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        @if (canEdit)
+                        {
+                            @Html.ActionLink("Edit", "Edit", new { id = Model.Id }, new { @class = "btn btn-warning me-2 subject-action-btn" })
+                            <button class="btn btn-danger me-2 subject-action-btn" onclick="deleteSubject(@Model.Id, '@Model.Name')">Delete</button>
+                        }
+                        @Html.ActionLink("Back to List", "Index", null, new { @class = "btn btn-secondary subject-action-btn" })
+                    </div>
+                </div>
+            </div>
 
-<div>
-    <h4>Subject</h4>
-    <hr />
-    <dl class="dl-horizontal">
-        <dt>
-            @Html.DisplayNameFor(model => model.User.FullName)
-        </dt>
+            <div class="card mb-4 grade-panel uiverse-card">
+                <div class="card-body">
+                    <h4 class="mb-3"><i class="fa-solid fa-chart-line me-2"></i>Grades</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle" id="gradesTable">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Value</th>
+                                    <th>Date</th>
+                                    <th style="width: 140px;">Weight %</th>
+                                    <th style="width: 90px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gradesBody">
+                                @if (!grades.Any())
+                                {
+                                    <tr id="noGradesRow"><td colspan="5" class="text-center text-muted">No grades yet</td></tr>
+                                }
+                                else
+                                {
+                                    foreach (var grade in grades)
+                                    {
+                                        <tr data-grade-id="@grade.Id" data-grade-type="@grade.Type">
+                                            <td><span class="badge @(grade.Type == "Final" ? "bg-success" : "bg-secondary")">@grade.Type</span></td>
+                                            <td class="grade-value">@grade.Value</td>
+                                            <td>@grade.Date.ToString("yyyy-MM-dd")</td>
+                                            <td><input type="number" class="form-control form-control-sm grade-weight" value="@(grade.Type == "Final" ? "0" : "25")" min="0" max="100" /></td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-link text-primary grade-edit" type="button"><i class="fa-solid fa-pen-to-square"></i></button>
+                                                <button class="btn btn-sm btn-link text-danger grade-delete" type="button"><i class="fa-solid fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
 
-        <dd>
-            @Html.DisplayFor(model => model.User.FullName)
-        </dd>
+                    <div class="row g-2 mt-2">
+                        <div class="col-md-5">
+                            <select id="gradeType" class="form-select form-select-sm">
+                                <option>First Midterm</option>
+                                <option>Second Midterm</option>
+                                <option>Lab Exercises</option>
+                                <option>Activity</option>
+                                <option>Project</option>
+                                <option>Final</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3"><input id="gradeValue" type="number" step="0.1" class="form-control form-control-sm" placeholder="Grade" /></div>
+                        <div class="col-md-4 d-grid"><button id="addGradeBtn" class="btn btn-sm btn-primary">Add Grade</button></div>
+                    </div>
 
-        <dt>
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <div>
+                            <div class="text-muted">Projected Average</div>
+                            <div class="fs-4 fw-bold" id="weightedAverage">0.00</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-muted">Official Grade</div>
+                            <div class="fs-5 fw-bold" id="finalGradeValue">@(finalGrade != null ? finalGrade.Value.ToString("0.00") : "--")</div>
+                        </div>
+                    </div>
+                    <div class="d-grid mt-3">
+                        <button id="confirmFinalGradeBtn" class="btn btn-success">Confirm as Final & Complete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <dd>
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.Year)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.Year)
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.Semester)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.Semester)
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.IsCompleted)
-        </dt>
-
-        <dd>
-            @if (Model.IsCompleted)
-            {
-                <span class="badge bg-success">Completed</span>
-            }
-            else
-            {
-                <span class="badge bg-warning">In Progress</span>
-            }
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.Credits)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.Credits)
-        </dd>
-
-    </dl>
+        <div class="col-md-4">
+            <div class="card task-panel uiverse-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0">Task Hub</h4>
+                        <div class="text-muted" id="taskCount">@completedTasks/@totalTasks</div>
+                    </div>
+                    <div class="input-group mb-3">
+                        <input id="newTaskTitle" type="text" class="form-control" placeholder="New task..." />
+                        <button id="addTaskBtn" class="btn btn-primary"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <select id="newTaskType" class="form-select form-select-sm">
+                                @foreach (var type in Enum.GetNames(typeof(Planity.Models.TaskType)))
+                                {
+                                    <option value="@type">@type</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select id="newTaskPriority" class="form-select form-select-sm">
+                                @foreach (var priority in Enum.GetNames(typeof(Planity.Models.Priority)))
+                                {
+                                    <option value="@priority">@priority</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input id="newTaskDueDate" type="date" class="form-control form-control-sm"
+                                   value="@DateTime.Now.AddDays(7).ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <ul class="list-group" id="tasksList">
+                        @foreach (var task in subjectTasks)
+                        {
+                            var isDone = task.Status == Planity.Models.TaskStatus.Done;
+                            <li class="list-group-item d-flex align-items-center task-item"
+                                data-task-id="@task.Id"
+                                data-task-title="@Html.AttributeEncode(task.Title)"
+                                data-task-type="@task.Type.ToString()"
+                                data-task-status="@task.Status.ToString()"
+                                data-task-priority="@task.Priority.ToString()"
+                                data-task-duedate="@task.DueDate.ToString("yyyy-MM-dd")">
+                                <input type="checkbox" class="task-toggle me-2" @(isDone ? "checked" : "") />
+                                <div class="flex-grow-1">
+                                    <div class="@(isDone ? "text-decoration-line-through text-muted" : "")">@task.Title</div>
+                                    <div class="small text-muted">
+                                        @task.Type • @task.Priority • Due @task.DueDate.ToString("yyyy-MM-dd")
+                                    </div>
+                                </div>
+                                <div class="ms-2">
+                                    <button class="btn btn-sm btn-link text-primary task-edit" type="button" title="Edit task">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-link text-danger task-delete" type="button" title="Delete task">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                    <div id="examCountdown" class="mt-3 small text-muted text-danger" style="display: none;">
+                        <span class="fw-semibold">Exam countdown:</span>
+                        <span id="examCountdownValue">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<p>
-    @if (canEdit)
-    {
-        @Html.ActionLink("Edit", "Edit", new { id = Model.Id }, new { @class = "btn btn-warning" })
-        @Html.ActionLink("Delete", "Delete", new { id = Model.Id }, new { @class = "btn btn-danger" })
+
+@using (Html.BeginForm(null, null, FormMethod.Post, new { id = "__AjaxAntiForgeryForm" }))
+{@Html.AntiForgeryToken()}
+
+@section scripts {
+    <script>
+        var subjectId = @Model.Id;
+        var token = $('input[name="__RequestVerificationToken"]', $('#__AjaxAntiForgeryForm')).val();
+
+        function calculateWeightedAverage() {
+            var totalWeight = 0, sum = 0, finalVal = null;
+            $('#gradesBody tr').each(function () {
+                var type = $(this).data('grade-type');
+                var val = parseFloat($(this).find('.grade-value').text());
+                var w = parseFloat($(this).find('.grade-weight').val());
+                if (type === 'Final') { finalVal = val; }
+                else if (!isNaN(val) && !isNaN(w)) { sum += val * (w / 100); totalWeight += w; }
+            });
+            var res = finalVal !== null ? finalVal : (totalWeight > 0 ? (sum / (totalWeight / 100)) : 0);
+            $('#weightedAverage').text(res.toFixed(2));
+            return res;
+        }
+
+        function syncFinalGrade() {
+            var val = null;
+            $('#gradesBody tr').each(function () {
+                if ($(this).data('grade-type') === 'Final') { val = parseFloat($(this).find('.grade-value').text()); }
+            });
+            $('#finalGradeValue').text(val !== null ? val.toFixed(2) : "--");
+        }
+
+        function updateExamCountdown() {
+            var now = new Date();
+            var closestExam = null;
+
+            $('#tasksList .task-item').each(function () {
+                var type = $(this).data('task-type');
+                var status = $(this).data('task-status');
+                if (type !== 'Exam' || status === 'Done') return;
+
+                var dueDateText = $(this).data('task-duedate');
+                if (!dueDateText) return;
+                var dueDate = new Date(dueDateText + 'T00:00:00');
+                if (isNaN(dueDate.getTime())) return;
+
+                if (!closestExam || dueDate < closestExam) {
+                    closestExam = dueDate;
+                }
+            });
+
+            if (!closestExam) {
+                $('#examCountdown').hide();
+                return;
+            }
+
+            var diffMs = closestExam - now;
+            var diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+            var label = '';
+            if (diffDays > 1) {
+                label = diffDays + ' days';
+            } else if (diffDays === 1) {
+                label = '1 day';
+            } else if (diffDays === 0) {
+                label = 'today';
+            } else {
+                label = 'passed';
+            }
+
+            $('#examCountdownValue').text(label);
+            $('#examCountdown').show();
+        }
+
+        $(document).ready(function () {
+            calculateWeightedAverage();
+            updateExamCountdown();
+
+            $(document).on('input', '.grade-weight', calculateWeightedAverage);
+
+            $('#addGradeBtn').on('click', function () {
+                var v = parseFloat($('#gradeValue').val());
+                if (isNaN(v)) return;
+                $.post('@Url.Action("AddGradeEntry", "Grades")', {
+                    subjectId: subjectId, type: $('#gradeType').val(), value: v, __RequestVerificationToken: token
+                }, function (res) { if (res.success) location.reload(); });
+            });
+
+            $(document).on('click', '.grade-edit', function () {
+                var row = $(this).closest('tr'), id = row.data('grade-id'), type = row.data('grade-type'), val = row.find('.grade-value').text();
+                var dialog = bootbox.confirm({
+                    title: 'Edit Grade',
+                    message: '<label>Type</label><select id="editT" class="form-select mb-2"><option>First Midterm</option><option>Second Midterm</option><option>Lab Exercises</option><option>Activity</option><option>Project</option><option>Final</option></select>' +
+                             '<label>Value</label><input type="number" id="editV" class="form-control" step="0.1" value="'+val+'">',
+                    callback: function (r) {
+                        if (r) $.post('@Url.Action("UpdateGradeEntry", "Grades")', { id: id, type: $('#editT').val(), value: $('#editV').val(), __RequestVerificationToken: token }, function (res) { if (res.success) location.reload(); });
+                    }
+                });
+                dialog.on('shown.bs.modal', function() { $('#editT').val(type); });
+            });
+
+            $(document).on('click', '.grade-delete', function () {
+                var id = $(this).closest('tr').data('grade-id');
+                if (confirm("Delete grade?")) $.post('@Url.Action("DeleteGradeEntry", "Grades")', { id: id, __RequestVerificationToken: token }, function (res) { if (res.success) location.reload(); });
+            });
+
+            $('#confirmFinalGradeBtn').on('click', function () {
+                var val = calculateWeightedAverage();
+                if (val < 5) { alert("Grade too low."); return; }
+                $.post('@Url.Action("UpdateGrade", "Subjects")', { id: subjectId, value: val, __RequestVerificationToken: token }, function (res) { if (res.success) location.reload(); });
+            });
+
+            $('#addTaskBtn').on('click', function () {
+                var t = $('#newTaskTitle').val();
+                var type = $('#newTaskType').val();
+                var priority = $('#newTaskPriority').val();
+                var dueDate = $('#newTaskDueDate').val();
+                if (t) {
+                    $.post('@Url.Action("AddSubjectTask")', {
+                        subjectId: subjectId,
+                        title: t,
+                        type: type,
+                        priority: priority,
+                        dueDate: dueDate,
+                        __RequestVerificationToken: token
+                    }, function (res) { if (res.success) location.reload(); });
+                }
+            });
+
+            $(document).on('change', '.task-toggle', function () {
+                var item = $(this).closest('.task-item');
+                $.post('@Url.Action("ToggleTaskStatus")', { taskId: $(this).closest('.task-item').data('task-id'), __RequestVerificationToken: token }, function (res) {
+                    if (res.success) {
+                        $('#taskCount').text(res.completed + '/' + res.total);
+                        $('#subjectProgressBar').css('width', res.progress + '%');
+                        $('#progressValue').text(res.progress + '%');
+                        updateExamCountdown();
+                        var isDone = res.status === 'Done';
+                        item.find('.flex-grow-1 > div:first-child')
+                            .toggleClass('text-decoration-line-through text-muted', isDone);
+                    }
+                });
+            });
+
+            $(document).on('click', '.task-edit', function () {
+                var item = $(this).closest('.task-item');
+                var taskId = item.data('task-id');
+                var title = item.data('task-title');
+                var type = item.data('task-type');
+                var priority = item.data('task-priority');
+                var dueDate = item.data('task-duedate');
+
+                var dialogBody = '' +
+                    '<div class="mb-2">' +
+                    '<label class="form-label">Title</label>' +
+                    '<input type="text" class="form-control form-control-sm" id="editTaskTitle" />' +
+                    '</div>' +
+                    '<div class="row g-2 mb-2">' +
+                    '<div class="col-6">' +
+                    '<label class="form-label">Type</label>' +
+                    '<select class="form-select form-select-sm" id="editTaskType">' +
+                    '<option>Lesson</option>' +
+                    '<option>Auditory</option>' +
+                    '<option>Homework</option>' +
+                    '<option>Lab</option>' +
+                    '<option>Project</option>' +
+                    '<option>Exam</option>' +
+                    '</select>' +
+                    '</div>' +
+                    '<div class="col-6">' +
+                    '<label class="form-label">Priority</label>' +
+                    '<select class="form-select form-select-sm" id="editTaskPriority">' +
+                    '<option>Low</option>' +
+                    '<option>Medium</option>' +
+                    '<option>High</option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div>' +
+                    '<label class="form-label">Due Date</label>' +
+                    '<input type="date" class="form-control form-control-sm" id="editTaskDueDate" />' +
+                    '</div>';
+
+                var dialog = bootbox.dialog({
+                    title: 'Edit Task',
+                    message: dialogBody,
+                    buttons: {
+                        cancel: { label: 'Cancel', className: 'btn-secondary' },
+                        ok: {
+                            label: 'Save',
+                            className: 'btn-primary',
+                            callback: function () {
+                                var newTitle = $('#editTaskTitle').val();
+                                var newType = $('#editTaskType').val();
+                                var newPriority = $('#editTaskPriority').val();
+                                var newDueDate = $('#editTaskDueDate').val();
+                                if (!newTitle) {
+                                    bootbox.alert('Title is required.');
+                                    return false;
+                                }
+                                $.post('@Url.Action("UpdateSubjectTask")', {
+                                    taskId: taskId,
+                                    title: newTitle,
+                                    type: newType,
+                                    priority: newPriority,
+                                    dueDate: newDueDate,
+                                    __RequestVerificationToken: token
+                                }, function (res) {
+                                    if (res.success) {
+                                        location.reload();
+                                    } else {
+                                        bootbox.alert('Error updating task.');
+                                    }
+                                });
+                            }
+                        }
+                    }
+                });
+
+                dialog.on('shown.bs.modal', function () {
+                    $('#editTaskTitle').val(title);
+                    $('#editTaskType').val(type);
+                    $('#editTaskPriority').val(priority);
+                    $('#editTaskDueDate').val(dueDate);
+                });
+            });
+
+            $(document).on('click', '.task-delete', function () {
+                var taskId = $(this).closest('.task-item').data('task-id');
+                bootbox.confirm('Delete this task?', function (result) {
+                    if (!result) return;
+                    $.post('@Url.Action("DeleteSubjectTask")', { taskId: taskId, __RequestVerificationToken: token }, function (res) {
+                        if (res.success) {
+                            location.reload();
+                        } else {
+                            bootbox.alert('Error deleting task.');
+                        }
+                    });
+                });
+            });
+
+            setInterval(updateExamCountdown, 60000);
+        });
+
+        function deleteSubject(id, name) {
+            if (confirm("Delete " + name + "?")) $.post('@Url.Action("Delete")', { id: id, __RequestVerificationToken: token }, function (res) { if (res.success) window.location.href = '@Url.Action("Index")'; });
+        }
+    </script>
+}
+
+<style>
+    body {
+        background-color: #e0e9ef;
     }
-    @Html.ActionLink("Back to List", "Index", null, new { @class = "btn btn-secondary" })
-</p>
+
+    .uiverse-card {
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(15px);
+        border-radius: 1rem;
+        border: 1px solid rgba(255,255,255,0.3);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+
+    .grade-weight {
+        width: 80px;
+    }
+</style>
