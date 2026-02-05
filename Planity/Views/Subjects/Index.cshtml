@@ -1,85 +1,279 @@
 ﻿@model IEnumerable<Planity.Models.Subject>
-@using Microsoft.AspNet.Identity
 
 @{
-    ViewBag.Title = "Index";
+    ViewBag.Title = "My Subjects";
     bool isAdmin = User.IsInRole("Admin");
-    string currentUserId = User.Identity.GetUserId();
 }
 
-<h2>Index</h2>
+<h2>My Subjects</h2>
 
 <p>
     @Html.ActionLink("Create New", "Create", null, new { @class = "btn btn-primary" })
 </p>
-<div class="table-responsive">
-    <table class="table table-striped table-hover">
+
+<div class="row" style="margin-bottom: 20px; background-color: #f8f9fa; padding: 15px; border-radius: 5px;">
+    <div class="col-md-4">
+        <label>Search:</label>
+        <input type="text" id="searchInput" class="form-control" placeholder="Search Subject Name..." />
+    </div>
+    <div class="col-md-4">
+        <label>Filter Status:</label>
+        <select id="filterInput" class="form-control">
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label>Sort By:</label>
+        <select id="sortInput" class="form-control">
+            <option value="default">Default (Year/Semester)</option>
+            <option value="name">Name</option>
+            <option value="grade">Grade (High to Low)</option>
+        </select>
+    </div>
+</div>
+
+<table class="table table-hover" id="subjectsTable">
+    <thead>
         <tr>
             @if (isAdmin)
             {
-                <th>
-                    Student
-                </th>
+                <th>Student</th>
             }
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Year)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Semester)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IsCompleted)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Credits)
-            </th>
-            <th></th>
+            <th>Subject</th>
+            <th>Credits</th>
+            <th>Progress</th>
+            <th>Status</th>
+            <th>Grade</th>
+            <th>Actions</th>
         </tr>
-
-        @foreach (var item in Model)
-        {
-            <tr>
-                @if (isAdmin)
-                {
-                    <td>
-                        @(item.User?.UserName ?? item.User?.Email ?? "N/A")
-                    </td>
-                }
-                <td>
-                    @Html.DisplayFor(modelItem => item.Name)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Year)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Semester)
-                </td>
-                <td>
-                    @if (item.IsCompleted)
-                    {
-                        <span class="badge bg-success">Completed</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-warning">In Progress</span>
-                    }
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Credits)
-                </td>
-                <td>
-                    @Html.ActionLink("Details", "Details", new { id = item.Id }, new { @class = "btn btn-sm btn-info" })
-                    @if (isAdmin || item.UserId == currentUserId)
-                    {
-                        @Html.ActionLink("Edit", "Edit", new { id = item.Id }, new { @class = "btn btn-sm btn-warning" })
-                        @Html.ActionLink("Delete", "Delete", new { id = item.Id }, new { @class = "btn btn-sm btn-danger" })
-                    }
-                </td>
-            </tr>
+    </thead>
+    <tbody id="tableBody">
+        @{
+            var groupedSubjects = Model
+                .GroupBy(s => new { s.Year, s.Semester })
+                .OrderBy(g => g.Key.Year)
+                .ThenBy(g => g.Key.Semester);
         }
 
-    </table>
+        @foreach (var group in groupedSubjects)
+        {
+            <tr class="info group-header-template" style="font-weight:bold; background-color: var(--secondary-color); display:none;">
+                <td colspan="@(isAdmin ? 7 : 6)">
+                    Year @group.Key.Year - Semester @group.Key.Semester
+                </td>
+            </tr>
+
+            foreach (var item in group)
+            {
+                
+                var subjectTasks = item.Tasks.Where(t => t.SubjectId == item.Id).ToList();
+                var totalTasks = subjectTasks.Count;
+                var completedTasks = subjectTasks.Count(t => t.Status == Planity.Models.TaskStatus.Done);
+                var progress = totalTasks > 0 ? (int)((double)completedTasks / totalTasks * 100) : 0;
+                var finalGrade = item.Grades.OrderByDescending(g => g.Date).FirstOrDefault();
+                var gradeVal = finalGrade != null ? finalGrade.Value : 0;
+
+                <tr class="subject-row" 
+                    data-year="@item.Year" 
+                    data-sem="@item.Semester" 
+                    data-name="@item.Name.ToLower()" 
+                    data-grade="@gradeVal"
+                    data-status="@(item.IsCompleted ? "completed" : "active")">
+                    
+                    @if (isAdmin)
+                    {
+                        <td>@(item.User != null ? (item.User.UserName ?? item.User.Email) : "N/A")</td>
+                    }
+                    <td>
+                        @Html.ActionLink(item.Name, "Details", new { id = item.Id }, new { style = "font-weight:bold; color: var(--dark-color);" })
+                    </td>
+                    <td>@item.Credits</td>
+                    <td style="width: 20%;">
+                        <div class="progress" style="margin-bottom: 0;">
+                            <div class="progress-bar" role="progressbar" 
+                                 aria-valuenow="@progress" aria-valuemin="0" aria-valuemax="100"
+                                 style="width: @progress%; background-color: var(--primary-color);">
+                                @progress%
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        @if (item.IsCompleted)
+                        {
+                            <span class="label" style="background-color: var(--neutral-color);">Completed</span>
+                        }
+                        else
+                        {
+                            <span class="label" style="background-color: var(--primary-color);">Active</span>
+                        }
+                        <button class="btn btn-xs btn-default" onclick="toggleStatus(@item.Id)">
+                            <i class="fa-solid fa-toggle-on"></i>
+                        </button>
+                    </td>
+                    <td>
+                        @if (finalGrade != null)
+                        {
+                            <span class="badge" style="background-color: var(--dark-color);">@finalGrade.Value</span>
+                        }
+                        else
+                        {
+                            <button class="btn btn-xs btn-link" onclick="addGrade(@item.Id)">Add Grade</button>
+                        }
+                    </td>
+                    <td>
+                        @Html.ActionLink("Edit", "Edit", new { id = item.Id }) |
+                        @Html.ActionLink("Delete", "Delete", new { id = item.Id })
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+<div id="paginationControls" style="text-align: center; margin-top: 20px;">
+    <button class="btn btn-default" id="prevPage" disabled>Previous</button>
+    <span id="pageInfo" style="margin: 0 15px; font-weight: bold;">Page 1</span>
+    <button class="btn btn-default" id="nextPage">Next</button>
 </div>
+
+@section Scripts {
+    <script>
+        var allRows = [];
+        var currentPage = 1;
+        var pageSize = 20;
+        var isAdmin = @(isAdmin.ToString().ToLower());
+
+        $(document).ready(function () {
+
+            $('#tableBody .subject-row').each(function() {
+                allRows.push($(this));
+            });
+
+            $('#searchInput').on('keyup', function() { renderTable(); });
+            $('#filterInput').on('change', function() { renderTable(); });
+            $('#sortInput').on('change', function() { renderTable(); });
+            
+            $('#prevPage').click(function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderTable(false); 
+                }
+            });
+            
+            $('#nextPage').click(function() {
+                currentPage++;
+                renderTable(false);
+            });
+
+            renderTable();
+        });
+
+        function renderTable(resetPage) {
+            if (typeof resetPage === 'undefined') resetPage = true;
+            if (resetPage) currentPage = 1;
+
+            var searchText = $('#searchInput').val().toLowerCase();
+            var filterStatus = $('#filterInput').val();
+            var sortBy = $('#sortInput').val();
+
+            var filteredRows = [];
+            for (var i = 0; i < allRows.length; i++) {
+                var row = allRows[i];
+                var name = row.data('name').toString();
+                var status = row.data('status');
+                
+                var matchesSearch = name.indexOf(searchText) > -1;
+                var matchesFilter = (filterStatus === 'all') || (status === filterStatus);
+                
+                if (matchesSearch && matchesFilter) {
+                    filteredRows.push(row);
+                }
+            }
+
+            filteredRows.sort(function(a, b) {
+                if (sortBy === 'default') {
+                    var yA = parseInt(a.data('year'));
+                    var yB = parseInt(b.data('year'));
+                    if (yA !== yB) return yA - yB;
+                    
+                    var sA = parseInt(a.data('sem'));
+                    var sB = parseInt(b.data('sem'));
+                    return sA - sB;
+                } else if (sortBy === 'name') {
+                    var nA = a.data('name');
+                    var nB = b.data('name');
+                    return nA.localeCompare(nB);
+                } else if (sortBy === 'grade') {
+                    var gA = parseFloat(a.data('grade'));
+                    var gB = parseFloat(b.data('grade'));
+                    return gB - gA;
+                }
+            });
+
+            var totalPages = Math.ceil(filteredRows.length / pageSize);
+            if (totalPages === 0) totalPages = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            $('#pageInfo').text("Page " + currentPage + " of " + totalPages);
+            $('#prevPage').prop('disabled', currentPage === 1);
+            $('#nextPage').prop('disabled', currentPage === totalPages);
+
+            var start = (currentPage - 1) * pageSize;
+            var end = start + pageSize;
+            var pageRows = filteredRows.slice(start, end);
+
+            var tbody = $('#tableBody');
+            tbody.empty();
+
+            var lastGroup = "";
+            var colspan = isAdmin ? 7 : 6;
+
+            $.each(pageRows, function(index, row) {
+                if (sortBy === 'default') {
+                    var year = row.data('year');
+                    var sem = row.data('sem');
+                    var groupKey = year + '-' + sem;
+
+                    if (lastGroup !== groupKey) {
+                        var headerHtml = '<tr class="info" style="font-weight:bold; background-color: var(--secondary-color);">' +
+                                         '<td colspan="' + colspan + '">Year ' + year + ' - Semester ' + sem + '</td></tr>';
+                        tbody.append(headerHtml);
+                        lastGroup = groupKey;
+                    }
+                }
+                tbody.append(row);
+            });
+            
+            if (filteredRows.length === 0) {
+                 tbody.append('<tr><td colspan="' + colspan + '" class="text-center">No subjects found.</td></tr>');
+            }
+        }
+
+        function toggleStatus(id) {
+            $.post('@Url.Action("ToggleStatus")', { id: id }, function () {
+                location.reload(); 
+            });
+        }
+
+        function addGrade(id) {
+            bootbox.prompt("Enter Final Grade (6-10):", function (result) {
+                if (result) {
+                    var grade = parseFloat(result);
+                    if (!isNaN(grade) && grade >= 6 && grade <= 10) {
+                        $.post('@Url.Action("UpdateGrade")', { id: id, value: grade }, function (response) {
+                            if (response.success) {
+                                location.reload();
+                            } else {
+                                bootbox.alert("Error updating grade");
+                            }
+                        });
+                    } else {
+                        bootbox.alert("Grade must be between 6 and 10.");
+                    }
+                }
+            });
+        }
+    </script>
+}

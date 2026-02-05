@@ -19,14 +19,69 @@ namespace Planity.Controllers
         // GET: Subjects
         public ActionResult Index()
         {
+            var subjects = db.Subjects
+                .Include(s => s.User)
+                .Include(s => s.Tasks)
+                .Include(s => s.Grades);
+
             if (User.IsInRole("Admin"))
             {
-                var allSubjects = db.Subjects.Include(s => s.User).ToList();
-                return View(allSubjects);
+                return View(subjects.ToList());
             }
+
             string currentUserId = User.Identity.GetUserId();
-            var subjects = db.Subjects.Where(s => s.UserId == currentUserId).Include(s => s.User).ToList();
-            return View(subjects);
+            return View(subjects.Where(s => s.UserId == currentUserId).ToList());
+        }
+
+        [HttpPost]
+        public ActionResult UpdateGrade(int id, double value)
+        {
+            var subject = db.Subjects.Find(id);
+            // Basic security check
+            if (subject == null) return HttpNotFound();
+            
+            // Find existing grade or create new one
+            var grade = db.Grades.FirstOrDefault(g => g.SubjectId == id);
+            if (grade == null)
+            {
+                grade = new Grade
+                {
+                    SubjectId = id,
+                    UserId = subject.UserId,
+                    Value = value,
+                    Date = DateTime.Now,
+                    Type = "Final"
+                };
+                db.Grades.Add(grade);
+            }
+            else
+            {
+                grade.Value = value;
+                grade.Date = DateTime.Now;
+                db.Entry(grade).State = EntityState.Modified;
+            }
+
+            // If grade is passing, complete the subject
+            if (value >= 6)
+            {
+                subject.IsCompleted = true;
+                db.Entry(subject).State = EntityState.Modified;
+            }
+
+            db.SaveChanges();
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        public ActionResult ToggleStatus(int id)
+        {
+            var subject = db.Subjects.Find(id);
+            if (subject != null)
+            {
+                subject.IsCompleted = !subject.IsCompleted;
+                db.SaveChanges();
+            }
+            return RedirectToAction("Index");
         }
 
         // GET: Subjects/Details/5
@@ -53,8 +108,6 @@ namespace Planity.Controllers
         }
 
         // POST: Subjects/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
-        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "Id,Name,Year,Semester,IsCompleted,Credits,UserId")] Subject subject)
@@ -88,8 +141,6 @@ namespace Planity.Controllers
         }
 
         // POST: Subjects/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
-        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "Id,Name,Year,Semester,IsCompleted,Credits")] Subject subject)
