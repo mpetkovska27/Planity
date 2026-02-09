@@ -12,6 +12,17 @@
     @Html.ActionLink("Create New", "Create", null, new { @class = "btn btn-primary" })
 </p>
 
+@section Breadcrumbs {
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+                <a href="@Url.Action("Index", "Dashboard")">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Subjects</li>
+        </ol>
+    </nav>
+}
+
 <div class="row subjects-filters">
     <div class="col-md-4">
         <label>Search:</label>
@@ -317,11 +328,11 @@
         box-shadow: 0 10px 24px rgba(31, 42, 51, 0.08);
     }
 
-    .subjects-filters label {
-        color: #2b3944;
-        font-weight: 600;
-        margin-bottom: 6px;
-    }
+        .subjects-filters label {
+            color: #2b3944;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
 
     .subjects-table {
         background-color: rgba(255, 255, 255, 0.96);
@@ -330,46 +341,46 @@
         box-shadow: 0 10px 24px rgba(31, 42, 51, 0.08);
     }
 
-    .subjects-table thead th {
-        background-color: #23313b;
-        color: #f3f6f9;
-        border-bottom: none;
-        padding-top: 12px;
-        padding-bottom: 12px;
-    }
+        .subjects-table thead th {
+            background-color: #23313b;
+            color: #f3f6f9;
+            border-bottom: none;
+            padding-top: 12px;
+            padding-bottom: 12px;
+        }
 
-    .subjects-table tbody tr {
-        border-top: 1px solid rgba(31, 42, 51, 0.08);
-    }
+        .subjects-table tbody tr {
+            border-top: 1px solid rgba(31, 42, 51, 0.08);
+        }
 
-    .subjects-table tbody tr:hover {
-        background-color: rgba(35, 49, 59, 0.06);
-    }
+            .subjects-table tbody tr:hover {
+                background-color: rgba(35, 49, 59, 0.06);
+            }
 
-    .subjects-table .progress {
-        background-color: rgba(31, 42, 51, 0.12);
-    }
+        .subjects-table .progress {
+            background-color: rgba(31, 42, 51, 0.12);
+        }
 
-    .subjects-table .label {
-        color: #ffffff;
-        font-weight: 600;
-        padding: 4px 8px;
-        border-radius: 8px;
-    }
+        .subjects-table .label {
+            color: #ffffff;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
 
-    .subjects-table .badge {
-        color: #ffffff;
-        font-weight: 600;
-    }
+        .subjects-table .badge {
+            color: #ffffff;
+            font-weight: 600;
+        }
 
-    .subjects-table .group-header-template td {
-        background-color: #dfe7ee;
-        color: #1f2a33;
-    }
+        .subjects-table .group-header-template td {
+            background-color: #dfe7ee;
+            color: #1f2a33;
+        }
 
-    .subjects-table .group-count {
-        float: right;
-        color: #465560;
-        font-weight: 600;
-    }
+        .subjects-table .group-count {
+            float: right;
+            color: #465560;
+            font-weight: 600;
+        }
 </style>

@@ -1,7 +1,15 @@
 ﻿@{
     ViewBag.Title = "Dashboard";
 }
+
 <h2>Dashboard</h2>
+@section Breadcrumbs {
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+        </ol>
+    </nav>
+}
 
 <div class="row">
     <div class="col-md-3">

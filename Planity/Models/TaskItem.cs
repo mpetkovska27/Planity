@@ -22,12 +22,18 @@ namespace Planity.Models
     {
         ToDo, InProgress, Done, Overdue
     }
+    public enum Repeat
+    {
+        None, Daily, Weekdays, Weekly, Monthly, Yearly
+    }
+
 
     public class TaskItem
     {
         [Key]
         public int Id { get; set; }
         [Required(ErrorMessage = "Title is required!")]
+        [Display(Name = "Task Name")]
         [StringLength(100)]
         public string Title { get; set; }
         public string Description { get; set; }
@@ -37,13 +43,14 @@ namespace Planity.Models
         public Priority Priority { get; set; }
         [Required]
         public TaskStatus Status { get; set; } = TaskStatus.ToDo;
-        [Required]
         [Display(Name = "Due Date")]
         [DataType(DataType.DateTime)]
-        public DateTime DueDate { get; set; }
+        public DateTime? DueDate { get; set; }
+        [Display(Name = "Repeat")]
+        public Repeat? Repeat { get; set; }
         [Display(Name = "Planed Hours")]
         [Range(0, 100)]
-        public int PlanedHours { get; set; }
+        public int? PlanedHours { get; set; }
         //Nullable ja stavame za da ne mora da bide od nekoj predmet
         public int? SubjectId { get; set; }
         [ForeignKey("SubjectId")]
@@ -58,5 +65,9 @@ namespace Planity.Models
         public int? StudyPlanId { get; set; }
         [ForeignKey("StudyPlanId")]
         public virtual StudyPlan StudyPlan { get; set; }
+        public int? ParentTaskId { get; set; }
+        [ForeignKey("ParentTaskId")]
+        public virtual TaskItem ParentTask { get; set; }
+        public virtual ICollection<TaskItem> SubTasks { get; set; } = new List<TaskItem>();
     }
 }

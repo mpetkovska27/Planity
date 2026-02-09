@@ -10,6 +10,7 @@
     @RenderSection("Styles", required: false)
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
+
 </head>
 <body>
     <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark">
@@ -42,6 +43,10 @@
             </div>
         </div>
     </nav>
+    <div class="breadcrumb-container mb-3 px-4">
+        @RenderSection("Breadcrumbs", required: false)
+    </div>
+
     <div class="container-fluid body-content">
         @RenderBody()
         <hr />

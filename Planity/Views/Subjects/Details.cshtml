@@ -15,6 +15,20 @@
     var finalGrade = grades.FirstOrDefault(g => g.Type == "Final");
 }
 
+@section Breadcrumbs {
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+                <a href="@Url.Action("Index", "Dashboard")">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="@Url.Action("Index", "Subjects")">Subjects</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+        </ol>
+    </nav>
+}
+
 <div class="container-fluid subject-dashboard">
     <div class="row">
         <div class="col-md-8">
@@ -171,12 +185,12 @@
                                 data-task-type="@task.Type.ToString()"
                                 data-task-status="@task.Status.ToString()"
                                 data-task-priority="@task.Priority.ToString()"
-                                data-task-duedate="@task.DueDate.ToString("yyyy-MM-dd")">
+                                data-task-duedate="@(task.DueDate?.ToString("yyyy-MM-dd") ?? "")">
                                 <input type="checkbox" class="task-toggle me-2" @(isDone ? "checked" : "") />
                                 <div class="flex-grow-1">
                                     <div class="@(isDone ? "text-decoration-line-through text-muted" : "")">@task.Title</div>
                                     <div class="small text-muted">
-                                        @task.Type • @task.Priority • Due @task.DueDate.ToString("yyyy-MM-dd")
+                                        @task.Type • @task.Priority • Due @(task.DueDate?.ToString("yyyy-MM-dd") ?? "--")
                                     </div>
                                 </div>
                                 <div class="ms-2">
@@ -453,14 +467,49 @@
         background-color: #e0e9ef;
     }
 
+    .subject-dashboard {
+        color: #1f2a33;
+        position: relative;
+        font-family: sans-serif;
+    }
+
+        .subject-dashboard::before,
+        .subject-dashboard::after {
+            content: "";
+            position: absolute;
+            background-color: rgba(35, 49, 59, 0.12);
+        }
+
+        .subject-dashboard::before {
+            border-radius: 50%;
+            width: 6rem;
+            height: 6rem;
+            top: 30%;
+            right: 7%;
+        }
+
+        .subject-dashboard::after {
+            height: 3rem;
+            top: 8%;
+            right: 5%;
+            border: 1px solid rgba(35, 49, 59, 0.2);
+        }
+
     .uiverse-card {
         padding: 1.5rem;
-        background: rgba(255, 255, 255, 0.5);
-        backdrop-filter: blur(15px);
-        border-radius: 1rem;
-        border: 1px solid rgba(255,255,255,0.3);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        background-color: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(20px);
+        border-radius: 0.9rem;
+        transition: all ease 0.3s;
+        box-shadow: 0 10px 24px rgba(31, 42, 51, 0.12);
     }
+
+        .uiverse-card:hover {
+            box-shadow: 0 16px 32px rgba(31, 42, 51, 0.2);
+            border-color: rgba(255, 255, 255, 0.55);
+        }
 
     .grade-weight {
         width: 80px;

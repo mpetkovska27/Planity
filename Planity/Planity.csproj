@@ -194,6 +194,18 @@
     <Compile Include="Migrations\202601251145179_RegisterModelUpdated.Designer.cs">
       <DependentUpon>202601251145179_RegisterModelUpdated.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202602071311362_TaskItemsUpdate.cs" />
+    <Compile Include="Migrations\202602071311362_TaskItemsUpdate.Designer.cs">
+      <DependentUpon>202602071311362_TaskItemsUpdate.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202602071839180_TaskItemsUpdate1.cs" />
+    <Compile Include="Migrations\202602071839180_TaskItemsUpdate1.Designer.cs">
+      <DependentUpon>202602071839180_TaskItemsUpdate1.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202602091113088_TaskRepeat.cs" />
+    <Compile Include="Migrations\202602091113088_TaskRepeat.Designer.cs">
+      <DependentUpon>202602091113088_TaskRepeat.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\Grade.cs" />
@@ -522,7 +534,6 @@
     <Content Include="Views\Subjects\Edit.cshtml" />
     <Content Include="Views\Subjects\Index.cshtml" />
     <Content Include="Views\TaskItems\Create.cshtml" />
-    <Content Include="Views\TaskItems\Delete.cshtml" />
     <Content Include="Views\TaskItems\Details.cshtml" />
     <Content Include="Views\TaskItems\Edit.cshtml" />
     <Content Include="Views\TaskItems\Index.cshtml" />
@@ -577,6 +588,15 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202601251145179_RegisterModelUpdated.resx">
       <DependentUpon>202601251145179_RegisterModelUpdated.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202602071311362_TaskItemsUpdate.resx">
+      <DependentUpon>202602071311362_TaskItemsUpdate.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202602071839180_TaskItemsUpdate1.resx">
+      <DependentUpon>202602071839180_TaskItemsUpdate1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202602091113088_TaskRepeat.resx">
+      <DependentUpon>202602091113088_TaskRepeat.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

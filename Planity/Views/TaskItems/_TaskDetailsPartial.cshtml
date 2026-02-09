@@ -1,0 +1,133 @@
+@model Planity.Models.TaskItem
+
+@{
+    var isDone = Model.Status == Planity.Models.TaskStatus.Done;
+    var isHigh = Model.Priority == Planity.Models.Priority.High;
+    var dueDateValue = Model.DueDate.HasValue ? Model.DueDate.Value.ToString("yyyy-MM-dd") : "";
+    var dueDateLabel = Model.DueDate.HasValue ? Model.DueDate.Value.ToString("dd MMM, yyyy") : "Add due date";
+    var subjectLabel = Model.Subject != null ? Model.Subject.Name : "General Task";
+    var availableSubjects = (ViewBag.Subjects as IEnumerable<Planity.Models.Subject>) ?? Enumerable.Empty<Planity.Models.Subject>();
+    var canEdit = ViewBag.CanEdit != null && (bool)ViewBag.CanEdit;
+    var repeatValue = Model.Repeat ?? Planity.Models.Repeat.None;
+    var repeatLabel = repeatValue == Planity.Models.Repeat.None ? "Repeat" : $"Repeat: {repeatValue}";
+    var subtasks = Model.SubTasks != null ? Model.SubTasks.OrderBy(t => t.Id).ToList() : new List<Planity.Models.TaskItem>();
+}
+
+<form id="taskDetailsForm" class="p-2">
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(model => model.Id, new { @id = "taskDetailsId" })
+
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div class="flex-grow-1">
+                    <input type="text"
+                           class="form-control form-control-lg mb-2 border-0 fw-bold px-0 shadow-none"
+                           id="taskDetailsTitle"
+                           style="font-size: 1.4rem; background:transparent;"
+                           value="@Model.Title" />
+
+                    <div class="d-flex flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-primary"></i>
+                            <select class="form-select form-select-sm rounded-pill border px-3 py-2 js-task-type"
+                                    style="background-color: #f0f2f5; min-width: 130px;"
+                                    @(canEdit ? "" : "disabled" )>
+                            @foreach (var type in Enum.GetNames(typeof(Planity.Models.TaskType)))
+                            {
+                                <option value="@type" @(type == Model.Type.ToString() ? "selected" : "")>@type</option>
+                            }
+                            </select>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-graduation-cap text-success"></i>
+                            <select class="form-select form-select-sm rounded-pill border px-3 py-2 js-task-subject"
+                                    style="background-color: #f0f2f5; min-width: 140px;"
+                                    @(canEdit ? "" : "disabled" )>
+                                <option value="">General Task</option>
+                            @foreach (var subject in availableSubjects.OrderBy(s => s.Name))
+                            {
+                                <option value="@subject.Id" @(Model.SubjectId == subject.Id ? "selected" : "")>@subject.Name</option>
+                            }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button type="button"
+                        class="btn btn-outline-light border-0 fs-4 js-toggle-priority p-1"
+                        data-task-id="@Model.Id"
+                        title="Mark as important">
+                    <i class="@(isHigh ? " fa-solid fa-star text-warning" : "fa-regular fa-star text-muted" )"></i>
+                </button>
+            </div>
+
+            <div class="card border-0 bg-light rounded-4 p-3 mb-4">
+                <div class="row g-2">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-white w-100 text-start border shadow-sm py-2 px-3 js-add-my-day">
+                            <i class="fa-solid fa-sun me-3 text-warning"></i> Add to My Day
+                        </button>
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-white w-100 text-start border shadow-sm py-2 px-3 js-edit-due">
+                            <i class="fa-solid fa-calendar-day me-3 text-primary"></i>
+                            <span class="@(Model.DueDate.HasValue ? " fw-bold" : "" )">@dueDateLabel</span>
+                        </button>
+                        <input type="date" class="form-control mt-2" style="position: absolute; opacity: 0;" id="taskDetailsDueDate" value="@dueDateValue" />
+                    </div>
+                    <div class="col-12">
+                        <button type="button"
+                                class="btn btn-white w-100 text-start border shadow-sm py-2 px-3 js-edit-repeat"
+                                data-repeat="@repeatValue">
+                            <i class="fa-solid fa-repeat me-3 text-secondary"></i>
+                            <span class="@(repeatValue != Planity.Models.Repeat.None ? " fw-bold" : "" )">@repeatLabel</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h6 class="fw-bold mb-3 d-flex align-items-center">
+                    <i class="fa-solid fa-list-check me-2"></i> Subtasks
+                </h6>
+                <div id="taskSubtasks" class="list-group list-group-flush mb-3">
+                    @foreach (var subtask in subtasks)
+                    {
+                    var subDone = subtask.Status == Planity.Models.TaskStatus.Done;
+                    <div class="list-group-item px-0 border-0 d-flex align-items-center gap-3">
+                        <input type="checkbox" class="form-check-input subtask-toggle m-0"
+                               style="width:20px; height:20px;"
+                               data-subtask-id="@subtask.Id" @(subDone ? "checked" : "" ) />
+                        <span class="subtask-text @(subDone ? " text-decoration-line-through text-muted" : "" )">@subtask.Title</span>
+                        <div class="ms-auto d-flex align-items-center gap-2">
+                            <button type="button"
+                                    class="btn btn-sm btn-link text-primary p-0 js-edit-subtask"
+                                    title="Edit subtask"
+                                    data-subtask-id="@subtask.Id">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button type="button"
+                                    class="btn btn-sm btn-link text-danger p-0 js-delete-subtask"
+                                    title="Delete subtask"
+                                    data-subtask-id="@subtask.Id">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    }
+                </div>
+                <div class="input-group border rounded-pill overflow-hidden bg-white shadow-sm">
+                    <span class="input-group-text bg-white border-0 ps-3"><i class="fa-solid fa-plus text-muted"></i></span>
+                    <input type="text" class="form-control border-0 shadow-none" id="taskSubtaskInput" placeholder="Add step" />
+                    <button type="button" class="btn btn-link text-primary text-decoration-none fw-bold js-add-subtask pe-3">Add</button>
+                </div>
+            </div>
+
+            <div>
+                <h6 class="fw-bold mb-2 d-flex align-items-center">
+                    <i class="fa-solid fa-pen-to-square me-2"></i> Notes
+                </h6>
+                <textarea class="form-control border-0 bg-light rounded-4 p-3 shadow-none"
+                          id="taskDetailsDescription"
+                          rows="5"
+                          placeholder="Add a note...">@Model.Description</textarea>
+            </div>
+</form>
