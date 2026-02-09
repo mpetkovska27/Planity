@@ -1,16 +1,18 @@
 ﻿@model IEnumerable<Planity.Models.Subject>
-@using System
-
 @{
     ViewBag.Title = "My Subjects";
     bool isAdmin = User.IsInRole("Admin");
 }
 
-<h2>My Subjects</h2>
-
-<p>
-    @Html.ActionLink("Create New", "Create", null, new { @class = "btn btn-primary" })
-</p>
+<div class="subject-hero d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="mb-1" style="font-size: 1.6rem; color: var(--dark-color);">Subjects Hub</h1>
+        <div style="color: #5b6468;">Organize, review, and manage subjects in one place.</div>
+    </div>
+    <div class="d-flex gap-2">
+        @Html.ActionLink("Create Subject", "Create", null, new { @class = "btn btn-primary" })
+    </div>
+</div>
 
 @section Breadcrumbs {
     <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
@@ -24,24 +26,15 @@
 }
 
 <div class="row subjects-filters">
-    <div class="col-md-4">
+    <div class="col-md-6">
         <label>Search:</label>
         <input type="text" id="searchInput" class="form-control" placeholder="Search Subject Name..." />
     </div>
-    <div class="col-md-4">
-        <label>Filter Status:</label>
-        <select id="filterInput" class="form-control">
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-        </select>
-    </div>
-    <div class="col-md-4">
+    <div class="col-md-6">
         <label>Sort By:</label>
         <select id="sortInput" class="form-control">
             <option value="default">Default (Year/Semester)</option>
             <option value="name">Name</option>
-            <option value="grade">Grade (High to Low)</option>
         </select>
     </div>
 </div>
@@ -56,8 +49,6 @@
             <th>Subject</th>
             <th>Credits</th>
             <th>Progress</th>
-            <th>Status</th>
-            <th>Grade</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -90,18 +81,12 @@
                 var totalTasks = subjectTasks.Count;
                 var completedTasks = subjectTasks.Count(t => t.Status == Planity.Models.TaskStatus.Done);
                 var progress = totalTasks > 0 ? (int)((double)completedTasks / totalTasks * 100) : 0;
-                var finalGrade = item.Grades.FirstOrDefault(g => g.Type != null && g.Type.Equals("Final", StringComparison.OrdinalIgnoreCase))
-                    ?? item.Grades.OrderByDescending(g => g.Date).FirstOrDefault();
-                var gradeVal = finalGrade != null ? finalGrade.Value : 0;
-                var hasFinalGrade = finalGrade != null && finalGrade.Type != null && finalGrade.Type.Equals("Final", StringComparison.OrdinalIgnoreCase);
-                var isCompleted = item.IsCompleted || hasFinalGrade;
+               
 
                 <tr class="subject-row"
                     data-year="@item.Year"
                     data-sem="@item.Semester"
-                    data-name="@item.Name.ToLower()"
-                    data-grade="@gradeVal"
-                    data-status="@(isCompleted ? "completed" : "active")">
+                    data-name="@item.Name.ToLower()">
 
                     @if (isAdmin)
                     {
@@ -120,32 +105,15 @@
                             </div>
                         </div>
                     </td>
+                    
                     <td>
-                        @if (isCompleted)
-                        {
-                            <span class="label" style="background-color: var(--neutral-color);">Completed</span>
-                        }
-                        else
-                        {
-                            <span class="label" style="background-color: var(--primary-color);">Active</span>
-                        }
-                        <button class="btn btn-xs btn-default" onclick="toggleStatus(@item.Id)">
-                            <i class="fa-solid fa-toggle-on"></i>
+                        <a href="@Url.Action("Edit", new { id = item.Id })" class="btn btn-link" title="Edit" aria-label="Edit">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                        <button class="btn btn-link text-danger" type="button" title="Delete" aria-label="Delete"
+                                onclick="deleteSubject(@item.Id, '@item.Name')">
+                            <i class="fa-solid fa-trash"></i>
                         </button>
-                    </td>
-                    <td>
-                        @if (finalGrade != null)
-                        {
-                            <span class="badge" style="background-color: var(--dark-color);">@finalGrade.Value</span>
-                        }
-                        else
-                        {
-                            <button class="btn btn-xs btn-link" onclick="addGrade(@item.Id)">Add Grade</button>
-                        }
-                    </td>
-                    <td>
-                        @Html.ActionLink("Edit", "Edit", new { id = item.Id }) |
-                        <button class="btn btn-link" onclick="deleteSubject(@item.Id, '@item.Name')">Delete</button>
                     </td>
                 </tr>
             }
@@ -178,7 +146,6 @@
             });
 
             $('#searchInput').on('keyup', function() { renderTable(); });
-            $('#filterInput').on('change', function() { renderTable(); });
             $('#sortInput').on('change', function() { renderTable(); });
 
             $('#prevPage').click(function() {
@@ -201,19 +168,17 @@
             if (resetPage) currentPage = 1;
 
             var searchText = $('#searchInput').val().toLowerCase();
-            var filterStatus = $('#filterInput').val();
             var sortBy = $('#sortInput').val();
 
             var filteredRows = [];
             for (var i = 0; i < allRows.length; i++) {
                 var row = allRows[i];
                 var name = row.data('name').toString();
-                var status = row.data('status');
+               
 
                 var matchesSearch = name.indexOf(searchText) > -1;
-                var matchesFilter = (filterStatus === 'all') || (status === filterStatus);
 
-                if (matchesSearch && matchesFilter) {
+                if (matchesSearch) {
                     filteredRows.push(row);
                 }
             }
@@ -228,9 +193,7 @@
                     return sA - sB;
                 } else if (sortBy === 'name') {
                     return a.data('name').localeCompare(b.data('name'));
-                } else if (sortBy === 'grade') {
-                    return parseFloat(b.data('grade')) - parseFloat(a.data('grade'));
-                }
+                } 
             });
 
             var totalPages = Math.ceil(filteredRows.length / pageSize) || 1;
@@ -252,18 +215,16 @@
                     var groupKey = row.data('year') + '-' + row.data('sem');
                     if (lastGroup !== groupKey) {
                         var groupTotal = 0;
-                        var groupCompleted = 0;
                         for (var i = 0; i < filteredRows.length; i++) {
                             var candidate = filteredRows[i];
                             if (candidate.data('year') + '-' + candidate.data('sem') === groupKey) {
                                 groupTotal++;
-                                if (candidate.data('status') === 'completed') groupCompleted++;
                             }
                         }
                         tbody.append(
                             '<tr class="info" style="font-weight:bold; background-color: var(--secondary-color);">' +
                             '<td colspan="' + colspan + '">Year ' + row.data('year') + ' - Semester ' + row.data('sem') +
-                            '<span class="group-count">' + groupCompleted + '/' + groupTotal + '</span></td></tr>'
+                            '<span class="group-count">' + groupTotal + '</span></td></tr>'
                         );
                         lastGroup = groupKey;
                     }
@@ -277,22 +238,6 @@
         function toggleStatus(id) {
             $.post('@Url.Action("ToggleStatus")', { id: id, __RequestVerificationToken: token }, function (res) {
                 if (res.success) location.reload();
-            });
-        }
-
-        function addGrade(id) {
-            bootbox.prompt("Enter Final Grade (6-10):", function (result) {
-                if (result) {
-                    var grade = parseFloat(result);
-                    if (!isNaN(grade) && grade >= 6 && grade <= 10) {
-                        $.post('@Url.Action("UpdateGrade")', { id: id, value: grade, __RequestVerificationToken: token }, function (response) {
-                            if (response.success) location.reload();
-                            else bootbox.alert("Error updating grade");
-                        });
-                    } else {
-                        bootbox.alert("Grade must be between 6 and 10.");
-                    }
-                }
             });
         }
 
@@ -314,9 +259,10 @@
         background-color: #e0e9ef;
     }
 
-    h2 {
-        color: #1f2a33;
-        font-weight: 700;
+    .subject-hero {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 18px 20px;
     }
 
     .subjects-filters {

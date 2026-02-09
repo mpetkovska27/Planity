@@ -27,7 +27,20 @@
 
                     @if (Request.IsAuthenticated)
                     {
+                        var currentController = (ViewContext.RouteData.Values["controller"] as string) ?? string.Empty;
+                        var isDashboard = currentController.Equals("Dashboard", StringComparison.OrdinalIgnoreCase);
+                        var isSubject = currentController.Equals("Subjects", StringComparison.OrdinalIgnoreCase);
+                        var isTask = currentController.Equals("TaskItems", StringComparison.OrdinalIgnoreCase);
+
+
                         <li>@Html.ActionLink("Dashboard", "Index", "Dashboard", new { area = "" }, new { @class = "nav-link" })</li>
+
+                        if (isDashboard || isSubject || isTask)
+                        {
+                            <li>@Html.ActionLink("Subjects", "Index", "Subjects", new { area = "" }, new { @class = "nav-link" })</li>
+                            <li>@Html.ActionLink("Tasks", "Index", "TaskItems", new { area = "" }, new { @class = "nav-link" })</li>
+                        }
+
                         <li>@Html.ActionLink("Progress", "Index", "Progress", new { area = "" }, new { @class = "nav-link" })</li>
                         <li>@Html.ActionLink("Study Plan", "Index", "StudyPlans", new { area = "" }, new { @class = "nav-link" })</li>
                         <li>@Html.ActionLink("Groups", "Index", "Groups", new { area = "" }, new { @class = "nav-link" })</li>

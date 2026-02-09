@@ -1,47 +1,444 @@
 ﻿@model IEnumerable<Planity.Models.Grade>
+@using System
+@using System.Linq
 @{
     ViewBag.Title = "Progress";
+    var grades = (Model ?? Enumerable.Empty<Planity.Models.Grade>()).ToList();
+    var totalSubjects = (int)(ViewBag.TotalSubjects ?? 0);
+    var passedSubjectIds = grades
+        .Where(g => !string.IsNullOrWhiteSpace(g.Type)
+                    && g.Type.Trim().Equals("Final", StringComparison.OrdinalIgnoreCase)
+                    && g.Subject != null)
+        .Select(g => g.Subject.Id)
+        .Distinct()
+        .ToList();
+    var passedSubjects = passedSubjectIds.Count;
+    var remainingSubjects = Math.Max(0, totalSubjects - passedSubjects);
+    var completionPercent = totalSubjects > 0
+        ? (int)Math.Round((double)passedSubjects * 100 / totalSubjects)
+        : 0;
+    var totalGrades = grades.Count;
+    var totalCredits = grades
+        .Where(g => g.Subject != null)
+        .GroupBy(g => g.Subject.Id)
+        .Select(g => g.First().Subject.Credits)
+        .Sum();
+    var finalGrades = grades
+        .Where(g => !string.IsNullOrWhiteSpace(g.Type)
+                    && g.Type.Trim().Equals("Final", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+    var averageScore = finalGrades.Count > 0 ? finalGrades.Average(g => g.Value) : 0;
+    var bestScore = finalGrades.Count > 0 ? finalGrades.Max(g => g.Value) : 0;
+    var latestGrade = finalGrades.OrderByDescending(g => g.Date).FirstOrDefault();
+    var gradeTypes = grades
+        .Select(g => g.Type)
+        .Where(t => !string.IsNullOrWhiteSpace(t))
+        .Select(t => t.Trim())
+        .Distinct()
+        .OrderBy(t => t)
+        .ToList();
 }
-<h2>Progress</h2>
 
-@{
-    var total = (int)(ViewBag.TotalSubjects ?? 0);
-    var passed = (int)(ViewBag.Passed ?? 0);
-    var remaining = (int)(ViewBag.Remaining ?? 0);
-    var percent = total > 0 ? (passed * 100 / total) : 0;
-}
-<p><strong>Subjects:</strong> @passed / @total (remaining: @remaining)</p>
-<div class="progress mb-3">
-    <div class="progress-bar bg-success" role="progressbar" style="width:@percent%">
-        @percent%
+<div class="progress-page">
+    <div class="progress-hero d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="mb-1">Progress Hub</h1>
+            <div class="subtitle">Monitor your academic journey, track earned ECTS credits, and analyze your grade performance across all semesters.</div>
+        </div>
+        <div class="hero-badges">
+            <span class="badge rounded-pill bg-light text-dark">Subjects: @passedSubjects/@totalSubjects</span>
+            <span class="badge rounded-pill bg-light text-dark">ECTS: @totalCredits</span>
+            <span class="badge rounded-pill bg-light text-dark">GPA: @averageScore.ToString("0.0")</span>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="progress-stat">
+                <div class="label">Completion</div>
+                <div class="value">@completionPercent%</div>
+                <div class="meta">@passedSubjects of @totalSubjects subjects passed</div>
+                <div class="progress completion-bar">
+                    <div class="progress-bar" role="progressbar"
+                         aria-valuenow="@completionPercent" aria-valuemin="0" aria-valuemax="100"
+                         style="width: @completionPercent%;">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="progress-stat">
+                <div class="label">Remaining</div>
+                <div class="value">@remainingSubjects</div>
+                <div class="meta">Subjects still in progress</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="progress-stat">
+                <div class="label">Average Score</div>
+                <div class="value">@averageScore.ToString("0.0")</div>
+                <div class="meta">Best: @bestScore.ToString("0.0")</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="progress-stat">
+                <div class="label">Latest Grade</div>
+                <div class="value">
+                    @(latestGrade != null ? latestGrade.Value.ToString("0.0") : "--")
+                </div>
+                <div class="meta">
+                    @(latestGrade != null
+                        ? (latestGrade.Subject != null ? latestGrade.Subject.Name : "Subject")
+                        : "No grades yet")
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="progress-panel">
+        <div class="progress-panel-header">
+            <div>
+                <h5 class="mb-1">Grades Overview</h5>
+            </div>
+        </div>
+
+        <div class="progress-controls">
+            <div class="controls-left">
+                <div class="input-group input-group-sm progress-search">
+                    <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" id="progressSearch" class="form-control" placeholder="Search subjects or types">
+                </div>
+                <select id="typeFilter" class="form-select form-select-sm">
+                    <option value="">All types</option>
+                    @foreach (var type in gradeTypes)
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </select>
+            </div>
+            <div class="controls-right">
+                <div class="d-flex align-items-center gap-2">
+                    <label class="small text-muted">Rows</label>
+                    <select id="pageSize" class="form-select form-select-sm">
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm" id="clearFilters" type="button">
+                    Clear filters
+                </button>
+            </div>
+        </div>
+
+        <div class="progress-table-wrapper">
+            <table id="gradesTable" class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Score</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var grade in grades)
+                    {
+                        var subjectName = grade.Subject != null ? grade.Subject.Name : "-";
+                        var isPassed = grade.Subject != null && passedSubjectIds.Contains(grade.Subject.Id);
+                        <tr>
+                            <td class="fw-semibold">@subjectName</td>
+                            <td data-order="@grade.Value">@grade.Value.ToString("0.0")</td>
+                            <td data-order="@grade.Date.ToString("yyyy-MM-dd")">@grade.Date.ToString("dd MMM yyyy")</td>
+                            <td>@(string.IsNullOrWhiteSpace(grade.Type) ? "-" : grade.Type)</td>
+                            <td>
+                                <span class="badge progress-badge @(isPassed ? "bg-success" : "bg-warning text-dark")">
+                                    @(isPassed ? "Passed" : "In progress")
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<table id="grades" class="table table-striped table-bordered">
-    <thead>
-        <tr>
-            <th>Subject</th>
-            <th>Value</th>
-            <th>Date</th>
-            <th>Type</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var g in Model ?? new List<Planity.Models.Grade>())
-    {
-        <tr>
-            <td>@(g.Subject != null ? g.Subject.Name : "-")</td>
-            <td>@g.Value</td>
-            <td>@g.Date.ToShortDateString()</td>
-            <td>@g.Type</td>
-        </tr>
-    }
-    </tbody>
-</table>
+@section Styles {
+    <style>
+        .progress-page {
+            background: #eef3f7;
+            padding: 6px 6px 20px;
+            border-radius: 18px;
+        }
+
+        .progress-hero {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 18px 20px;
+            border: 1px solid rgba(24, 33, 30, 0.08);
+            box-shadow: 0 10px 24px rgba(31, 42, 51, 0.08);
+        }
+
+            .progress-hero h1 {
+                font-size: 1.6rem;
+                color: var(--dark-color);
+            }
+
+            .progress-hero .subtitle {
+                color: #5b6468;
+            }
+
+        .hero-badges .badge {
+            padding: 0.5rem 0.85rem;
+            font-weight: 600;
+            border: 1px solid rgba(24, 33, 30, 0.08);
+        }
+
+        .progress-stat {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 14px 16px;
+            border: 1px solid rgba(24, 33, 30, 0.08);
+            box-shadow: 0 8px 20px rgba(24, 33, 30, 0.08);
+            height: 100%;
+        }
+
+            .progress-stat .label {
+                color: #6b747b;
+                font-size: 0.85rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+            }
+
+            .progress-stat .value {
+                font-size: 1.45rem;
+                font-weight: 700;
+                color: var(--dark-color);
+                margin-top: 6px;
+            }
+
+            .progress-stat .meta {
+                color: #6b747b;
+                font-size: 0.85rem;
+            }
+
+        .progress-panel {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(24, 33, 30, 0.08);
+            box-shadow: 0 10px 24px rgba(31, 42, 51, 0.08);
+        }
+
+        .progress-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .completion-pill {
+            background: var(--secondary-color);
+            color: var(--dark-color);
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 999px;
+        }
+
+        .completion-bar {
+            height: 12px;
+            background-color: rgba(31, 42, 51, 0.12);
+            border-radius: 999px;
+        }
+
+            .completion-bar .progress-bar {
+                background: var(--primary-color);
+                border-radius: 999px;
+            }
+
+        .progress-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .controls-left,
+        .controls-right {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+
+        .progress-search {
+            min-width: 220px;
+        }
+
+        .progress-table-wrapper {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(24, 33, 30, 0.08);
+        }
+
+        #gradesTable thead th {
+            background: #23313b;
+            color: #f3f6f9;
+            border-bottom: none;
+            padding: 12px 14px;
+            cursor: pointer;
+        }
+
+        #gradesTable tbody tr {
+            border-top: 1px solid rgba(31, 42, 51, 0.08);
+        }
+
+            #gradesTable tbody tr:hover {
+                background: rgba(35, 49, 59, 0.06);
+            }
+
+        .progress-badge {
+            font-weight: 600;
+            padding: 0.4rem 0.6rem;
+        }
+
+        .dataTables_info,
+        .dataTables_paginate {
+            padding-top: 12px;
+        }
+
+            .dataTables_paginate .paginate_button {
+                margin: 0 2px;
+            }
+    </style>
+}
 
 @section scripts {
     @Scripts.Render("~/bundles/datatables")
     <script>
-        $(function () { $('#grades').DataTable(); });
+        $(function () {
+            var table = null;
+            var hasDataTable = $.fn.DataTable !== undefined;
+
+            if (hasDataTable) {
+                table = $('#gradesTable').DataTable({
+                    pageLength: 10,
+                    order: [[2, 'desc']],
+                autoWidth: false,
+                ordering: true,
+                    dom: "rt<'progress-table-footer d-flex justify-content-between align-items-center'ip>",
+                    language: {
+                        emptyTable: "No grades logged yet.",
+                        info: "Showing _START_ to _END_ of _TOTAL_ grades",
+                        infoEmpty: "Showing 0 grades",
+                        paginate: { previous: "Prev", next: "Next" }
+                    }
+                });
+            }
+
+            function applyFilters() {
+                var term = $('#progressSearch').val() || '';
+                var typeValue = $('#typeFilter').val() || '';
+
+                if (table) {
+                    table.search(term);
+                    table.column(3).search(
+                        typeValue
+                            ? '^' + $.fn.dataTable.util.escapeRegex(typeValue) + '$'
+                            : '',
+                        true,
+                        false
+                    );
+                    table.draw();
+                } else {
+                    var normalizedTerm = term.toLowerCase();
+                    var normalizedType = typeValue.toLowerCase();
+
+                    $('#gradesTable tbody tr').each(function () {
+                        var $row = $(this);
+                        var subjectText = $row.find('td:eq(0)').text().toLowerCase();
+                        var typeText = $row.find('td:eq(3)').text().toLowerCase();
+                        var matchesType = !normalizedType || typeText === normalizedType;
+                        var matchesTerm = !normalizedTerm || (subjectText + " " + typeText).indexOf(normalizedTerm) !== -1;
+                        $row.toggle(matchesType && matchesTerm);
+                    });
+                }
+            }
+
+            $('#progressSearch').on('input keyup change', applyFilters);
+            $('#typeFilter').on('change', applyFilters);
+
+            function sortRowsByColumn(index, direction) {
+                var $tbody = $('#gradesTable tbody');
+                var rows = $tbody.find('tr').get();
+
+                rows.sort(function (a, b) {
+                    var $a = $(a).find('td').eq(index);
+                    var $b = $(b).find('td').eq(index);
+                    var aKey = $a.attr('data-order') || $a.text();
+                    var bKey = $b.attr('data-order') || $b.text();
+
+                    var aNum = parseFloat(aKey);
+                    var bNum = parseFloat(bKey);
+                    var result = 0;
+
+                    if (!isNaN(aNum) && !isNaN(bNum)) {
+                        result = aNum - bNum;
+                    } else {
+                        result = aKey.toString().localeCompare(bKey.toString());
+                    }
+
+                    return direction === 'asc' ? result : -result;
+                });
+
+                $.each(rows, function (_, row) {
+                    $tbody.append(row);
+                });
+            }
+
+            $('#gradesTable thead th').on('click', function () {
+                var index = $(this).index();
+                var current = $(this).data('sort') || 'none';
+                var next = current === 'asc' ? 'desc' : 'asc';
+
+                $('#gradesTable thead th').data('sort', 'none');
+                $(this).data('sort', next);
+
+                if (table) {
+                    table.order([index, next]).draw();
+                } else {
+                    sortRowsByColumn(index, next);
+                }
+            });
+
+            $('#pageSize').on('change', function () {
+                if (table) {
+                    table.page.len(parseInt(this.value, 10)).draw();
+                }
+            });
+
+            $('#clearFilters').on('click', function () {
+                $('#progressSearch').val('');
+                $('#typeFilter').val('');
+                $('#pageSize').val('10');
+
+                if (table) {
+                    table.search('');
+                    table.columns().search('');
+                    table.page.len(10).draw();
+                } else {
+                    $('#gradesTable tbody tr').show();
+                }
+            });
+        });
     </script>
+}
+
 }
