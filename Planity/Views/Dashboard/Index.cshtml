@@ -258,7 +258,28 @@
 
         .calendar-wrap {
             margin-top: 6px;
+            min-height: 420px;
         }
+
+        #dashboardCalendar .fc .fc-toolbar-title {
+            color: var(--dark-color) !important;
+            font-weight: 600;
+        }
+
+        #dashboardCalendar .fc .fc-button {
+            background: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #fff !important;
+            box-shadow: none;
+        }
+
+        #dashboardCalendar .fc .fc-button:hover,
+        #dashboardCalendar .fc .fc-button:focus {
+            background: #6ea8c2 !important;
+            border-color: #6ea8c2 !important;
+            color: #fff !important;
+        }
+        
     </style>
 }
 
@@ -355,13 +376,14 @@
                     <span class="badge-soft">GPA: <span id="gpaValue">0.00</span></span>
                 </div>
             </div>
+
         </div>
 
         <div class="col-12 col-lg-6">
             <div class="dash-card mb-3">
                 <div class="card-header-inline">
                     <i class="fa-solid fa-calendar-week"></i>
-                    <h5 class="mb-0">Weekly Routine</h5>
+                    <h5 class="mb-0">Weekly Schedule</h5>
                 </div>
                 <div class="row g-3">
                     <div class="col-12 col-lg-3">
@@ -455,12 +477,10 @@
 
             <div class="dash-card mb-3">
                 <div class="card-header-inline">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <h5 class="mb-0">Task Overview</h5>
+                    <i class="fa-solid fa-calendar"></i>
+                    <h5 class="mb-0">Calendar</h5>
                 </div>
-                <div class="chart-wrap">
-                    <canvas id="tasksChart"></canvas>
-                </div>
+                <div id="dashboardCalendar" class="calendar-wrap"></div>
             </div>
 
             <div class="dash-card">
@@ -482,7 +502,7 @@
                                 <input class="form-check-input myday-toggle" type="checkbox" @(isDone ? "checked" : "") />
                                 <div>
                                     <div class="myday-title fw-semibold">@task.Title</div>
-                                    <div class="text-muted small">@formatTime(task.DueDate) • @task.Type</div>
+                                    <div class="text-muted small">@task.Type</div>
                                 </div>
                             </div>
                         }
@@ -494,10 +514,12 @@
         <div class="col-12 col-lg-3">
             <div class="dash-card mb-3">
                 <div class="card-header-inline">
-                    <i class="fa-solid fa-calendar"></i>
-                    <h5 class="mb-0">Calendar</h5>
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <h5 class="mb-0">Task Overview</h5>
                 </div>
-                <div id="dashboardCalendar" class="calendar-wrap"></div>
+                <div class="chart-wrap">
+                    <canvas id="tasksChart"></canvas>
+                </div>
             </div>
 
             <div class="dash-card">
@@ -516,7 +538,7 @@
                         <div class="deadline-item">
                             <div>
                                 <div class="fw-semibold">@task.Title</div>
-                                <div class="text-muted small">@formatTime(task.DueDate)</div>
+                                <div class="text-muted small">@task.Type</div>
                             </div>
                             <span class="badge-soft">@formatRemaining(task.DueDate)</span>
                         </div>
@@ -937,7 +959,7 @@
             if (calendarEl && window.FullCalendar) {
                 var calendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
-                    height: 320,
+                    height: 'auto',
                     headerToolbar: {
                         left: 'prev,next',
                         center: 'title',

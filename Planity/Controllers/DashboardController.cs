@@ -19,20 +19,38 @@ namespace Planity.Controllers
         {
             var userId = User.Identity.GetUserId();
 
-            var myTasksQuery = db.TaskItems
+            var tasksQuery = db.TaskItems
                 .Include(t => t.Subject)
-                .Where(t =>
-                    t.UserId == userId ||
-                    (t.IsGroupTask && t.Group.Members.Any(m => m.UserId == userId)));
-
-            var myTasks = myTasksQuery.ToList();
+                .Include(t => t.Group)
+                .Include(t => t.Group.Members);
+            List<TaskItem> myTasks;
+            if (User.IsInRole("Admin"))
+            {
+                myTasks = tasksQuery.ToList();
+            }
+            else if (User.IsInRole("TimLeader"))
+            {
+                myTasks = tasksQuery
+                    .Where(t => t.UserId == userId ||
+                                (t.IsGroupTask && t.Group.TeamLeaderId == userId))
+                    .ToList();
+            }
+            else
+            {
+                myTasks = tasksQuery
+                    .Where(t => t.UserId == userId ||
+                                (t.IsGroupTask && t.Group.Members.Any(m => m.UserId == userId)))
+                    .ToList();
+            }
             var now = DateTime.Now;
             var today = now.Date;
 
             var total = myTasks.Count;
             var finished = myTasks.Count(t => t.Status == TaskStatus.Done);
-            var inProgress = myTasks.Count(t => t.Status == TaskStatus.InProgress && t.DueDate >= now);
-            var overdue = myTasks.Count(t => t.Status == TaskStatus.Overdue || (t.Status != TaskStatus.Done && t.DueDate < now));
+            var inProgress = myTasks.Count(t => t.Status != TaskStatus.Done);
+            var overdue = myTasks.Count(t => t.Status != TaskStatus.Done &&
+                                             t.DueDate.HasValue &&
+                                             t.DueDate.Value.Date < today);
 
 
             var myDayTasks = myTasks
@@ -41,9 +59,8 @@ namespace Planity.Controllers
                 .ToList();
 
             var upcomingDeadlines = myTasks
-                .Where(t => t.DueDate.HasValue && t.Status != TaskStatus.Done)
+                .Where(t => t.DueDate.HasValue && t.DueDate.Value > now)
                 .OrderBy(t => t.DueDate)
-                .Take(3)
                 .ToList();
 
             var calendarEvents = myTasks
