@@ -382,6 +382,33 @@
         <div class="col-12 col-lg-6">
             <div class="dash-card mb-3">
                 <div class="card-header-inline">
+                    <i class="fa-solid fa-list-check"></i>
+                    <h5 class="mb-0">My Day</h5>
+                </div>
+                <div id="myDayList">
+                    @if (!myDayTasks.Any())
+                    {
+                        <div class="text-muted">No tasks due today.</div>
+                    }
+                    else
+                    {
+                        foreach (var task in myDayTasks)
+                        {
+                            var isDone = task.Status == TaskStatus.Done;
+                            <div class="myday-item @(isDone ? "is-done" : "")" data-task-id="@task.Id">
+                                <input class="form-check-input myday-toggle" type="checkbox" @(isDone ? "checked" : "") />
+                                <div>
+                                    <div class="myday-title fw-semibold">@task.Title</div>
+                                    <div class="text-muted small">@task.Type</div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="dash-card mb-3">
+                <div class="card-header-inline">
                     <i class="fa-solid fa-calendar-week"></i>
                     <h5 class="mb-0">Weekly Schedule</h5>
                 </div>
@@ -481,33 +508,6 @@
                     <h5 class="mb-0">Calendar</h5>
                 </div>
                 <div id="dashboardCalendar" class="calendar-wrap"></div>
-            </div>
-
-            <div class="dash-card">
-                <div class="card-header-inline">
-                    <i class="fa-solid fa-list-check"></i>
-                    <h5 class="mb-0">My Day</h5>
-                </div>
-                <div id="myDayList">
-                    @if (!myDayTasks.Any())
-                    {
-                        <div class="text-muted">No tasks due today.</div>
-                    }
-                    else
-                    {
-                        foreach (var task in myDayTasks)
-                        {
-                            var isDone = task.Status == TaskStatus.Done;
-                            <div class="myday-item @(isDone ? "is-done" : "")" data-task-id="@task.Id">
-                                <input class="form-check-input myday-toggle" type="checkbox" @(isDone ? "checked" : "") />
-                                <div>
-                                    <div class="myday-title fw-semibold">@task.Title</div>
-                                    <div class="text-muted small">@task.Type</div>
-                                </div>
-                            </div>
-                        }
-                    }
-                </div>
             </div>
         </div>
 

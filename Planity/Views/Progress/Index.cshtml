@@ -30,6 +30,13 @@
     var averageScore = finalGrades.Count > 0 ? finalGrades.Average(g => g.Value) : 0;
     var bestScore = finalGrades.Count > 0 ? finalGrades.Max(g => g.Value) : 0;
     var latestGrade = finalGrades.OrderByDescending(g => g.Date).FirstOrDefault();
+    var finalGradeFilters = finalGrades
+        .Where(g => g.Subject != null)
+        .Select(g => new { g.Subject.Year, g.Subject.Semester })
+        .Distinct()
+        .OrderBy(g => g.Year)
+        .ThenBy(g => g.Semester)
+        .ToList();
     var gradeTypes = grades
         .Select(g => g.Type)
         .Where(t => !string.IsNullOrWhiteSpace(t))
@@ -76,8 +83,17 @@
         <div class="col-12 col-md-6 col-xl-3">
             <div class="progress-stat">
                 <div class="label">Average Score</div>
-                <div class="value">@averageScore.ToString("0.0")</div>
+                <div class="value" id="averageScoreValue">@averageScore.ToString("0.0")</div>
                 <div class="meta">Best: @bestScore.ToString("0.0")</div>
+                <div class="average-filter">
+                    <select id="averageFilter" class="form-select form-select-sm">
+                        <option value="overall">Overall</option>
+                        @foreach (var item in finalGradeFilters)
+                        {
+                            <option value="@(item.Year)-@(item.Semester)">Year @item.Year / Sem @item.Semester</option>
+                        }
+                    </select>
+                </div>
             </div>
         </div>
         <div class="col-12 col-md-6 col-xl-3">
@@ -138,6 +154,7 @@
                 <thead>
                     <tr>
                         <th>Subject</th>
+                        <th>Year/Semester</th>
                         <th>Score</th>
                         <th>Date</th>
                         <th>Type</th>
@@ -151,7 +168,11 @@
                         var isPassed = grade.Subject != null && passedSubjectIds.Contains(grade.Subject.Id);
                         <tr>
                             <td class="fw-semibold">@subjectName</td>
+                            <td data-order="@(grade.Subject != null ? $"{grade.Subject.Year:D2}{grade.Subject.Semester:D2}" : "00")">
+                                @(grade.Subject != null ? $"Year {grade.Subject.Year} / Sem {grade.Subject.Semester}" : "-")
+                            </td>
                             <td data-order="@grade.Value">@grade.Value.ToString("0.0")</td>
+
                             <td data-order="@grade.Date.ToString("yyyy-MM-dd")">@grade.Date.ToString("dd MMM yyyy")</td>
                             <td>@(string.IsNullOrWhiteSpace(grade.Type) ? "-" : grade.Type)</td>
                             <td>
@@ -225,6 +246,10 @@
                 color: #6b747b;
                 font-size: 0.85rem;
             }
+
+        .average-filter {
+            margin-top: 10px;
+        }
 
         .progress-panel {
             background: #ffffff;
@@ -343,13 +368,17 @@
                 });
             }
 
+            var finalGrades = @Html.Raw(Json.Encode(finalGrades
+                .Where(g => g.Subject != null)
+                .Select(g => new { value = g.Value, year = g.Subject.Year, semester = g.Subject.Semester })));
+
             function applyFilters() {
                 var term = $('#progressSearch').val() || '';
                 var typeValue = $('#typeFilter').val() || '';
 
                 if (table) {
                     table.search(term);
-                    table.column(3).search(
+                    table.column(4).search(
                         typeValue
                             ? '^' + $.fn.dataTable.util.escapeRegex(typeValue) + '$'
                             : '',
@@ -364,7 +393,7 @@
                     $('#gradesTable tbody tr').each(function () {
                         var $row = $(this);
                         var subjectText = $row.find('td:eq(0)').text().toLowerCase();
-                        var typeText = $row.find('td:eq(3)').text().toLowerCase();
+                        var typeText = $row.find('td:eq(4)').text().toLowerCase();
                         var matchesType = !normalizedType || typeText === normalizedType;
                         var matchesTerm = !normalizedTerm || (subjectText + " " + typeText).indexOf(normalizedTerm) !== -1;
                         $row.toggle(matchesType && matchesTerm);
@@ -372,8 +401,30 @@
                 }
             }
 
+            function updateAverageScore() {
+                var selection = $('#averageFilter').val() || 'overall';
+                var filtered = finalGrades || [];
+
+                if (selection !== 'overall') {
+                    var parts = selection.split('-');
+                    var year = parseInt(parts[0], 10);
+                    var semester = parseInt(parts[1], 10);
+                    filtered = filtered.filter(function (g) {
+                        return g.year === year && g.semester === semester;
+                    });
+                }
+
+                var avg = 0;
+                if (filtered.length) {
+                    var sum = filtered.reduce(function (acc, g) { return acc + g.value; }, 0);
+                    avg = sum / filtered.length;
+                }
+                $('#averageScoreValue').text(avg.toFixed(1));
+            }
+
             $('#progressSearch').on('input keyup change', applyFilters);
             $('#typeFilter').on('change', applyFilters);
+            $('#averageFilter').on('change', updateAverageScore);
 
             function sortRowsByColumn(index, direction) {
                 var $tbody = $('#gradesTable tbody');
@@ -437,6 +488,8 @@
                     $('#gradesTable tbody tr').show();
                 }
             });
+
+            updateAverageScore();
         });
     </script>
 }

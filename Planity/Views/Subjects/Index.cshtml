@@ -63,15 +63,11 @@
         @foreach (var group in groupedSubjects)
         {
             var groupItems = group.ToList();
-            var completedCount = groupItems.Count(item =>
-                item.IsCompleted ||
-                item.Grades.Any(g => g.Type != null && g.Type.Equals("Final", StringComparison.OrdinalIgnoreCase)));
-            var totalCount = groupItems.Count;
+            
 
             <tr class="info group-header-template" style="font-weight:bold; display:none;">
                 <td colspan="@(isAdmin ? 7 : 6)">
                     Year @group.Key.Year - Semester @group.Key.Semester
-                    <span class="group-count">@completedCount/@totalCount</span>
                 </td>
             </tr>
 
@@ -214,17 +210,10 @@
                 if (sortBy === 'default') {
                     var groupKey = row.data('year') + '-' + row.data('sem');
                     if (lastGroup !== groupKey) {
-                        var groupTotal = 0;
-                        for (var i = 0; i < filteredRows.length; i++) {
-                            var candidate = filteredRows[i];
-                            if (candidate.data('year') + '-' + candidate.data('sem') === groupKey) {
-                                groupTotal++;
-                            }
-                        }
                         tbody.append(
                             '<tr class="info" style="font-weight:bold; background-color: var(--secondary-color);">' +
                             '<td colspan="' + colspan + '">Year ' + row.data('year') + ' - Semester ' + row.data('sem') +
-                            '<span class="group-count">' + groupTotal + '</span></td></tr>'
+                            '</td></tr>'
                         );
                         lastGroup = groupKey;
                     }
@@ -322,11 +311,5 @@
         .subjects-table .group-header-template td {
             background-color: #dfe7ee;
             color: #1f2a33;
-        }
-
-        .subjects-table .group-count {
-            float: right;
-            color: #465560;
-            font-weight: 600;
         }
 </style>
