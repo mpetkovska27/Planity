@@ -93,6 +93,60 @@ namespace Planity.Controllers
             return Json(new { success = true });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UpdateSchedule(int id, string scheduleDay, string scheduleTimeSlot)
+        {
+            var subject = db.Subjects.Find(id);
+            if (subject == null) return Json(new { success = false, message = "Subject not found" });
+
+            if (!User.IsInRole("Admin") && subject.UserId != User.Identity.GetUserId())
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            }
+
+            if (string.IsNullOrWhiteSpace(scheduleDay))
+            {
+                return Json(new { success = false, message = "Invalid schedule day" });
+            }
+
+            DayOfWeek day;
+            if (int.TryParse(scheduleDay, out var dayValue) && Enum.IsDefined(typeof(DayOfWeek), dayValue))
+            {
+                day = (DayOfWeek)dayValue;
+            }
+            else if (!Enum.TryParse(scheduleDay, true, out day))
+            {
+                return Json(new { success = false, message = "Invalid schedule day" });
+            }
+
+            subject.ScheduleDay = day;
+            subject.ScheduleTimeSlot = string.IsNullOrWhiteSpace(scheduleTimeSlot) ? null : scheduleTimeSlot.Trim();
+
+            try
+            {
+                db.Configuration.ValidateOnSaveEnabled = false;
+                db.SaveChanges();
+            }
+            catch (System.Data.Entity.Validation.DbEntityValidationException ex)
+            {
+                var message = string.Join("; ",
+                    ex.EntityValidationErrors.SelectMany(e => e.ValidationErrors).Select(e => e.ErrorMessage));
+                return Json(new { success = false, message });
+            }
+            finally
+            {
+                db.Configuration.ValidateOnSaveEnabled = true;
+            }
+
+            return Json(new
+            {
+                success = true,
+                day = subject.ScheduleDay.ToString(),
+                timeSlot = subject.ScheduleTimeSlot ?? string.Empty
+            });
+        }
+
         // GET: Subjects/Details/5
         public ActionResult Details(int? id)
         {

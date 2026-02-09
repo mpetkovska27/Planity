@@ -21,6 +21,8 @@ namespace Planity.Models
         [Required(ErrorMessage ="Semestar is required!")]
         [Display(Name = "Semestar")]
         public int Semester { get; set; }
+        public DayOfWeek? ScheduleDay { get; set; }
+        public string ScheduleTimeSlot { get; set; }
         [Display(Name = "Status")]
         public bool IsCompleted { get; set; }
         [Required(ErrorMessage = "Credits are required!")]

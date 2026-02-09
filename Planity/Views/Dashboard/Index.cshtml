@@ -1,51 +1,965 @@
-﻿@{
-    ViewBag.Title = "Dashboard";
-}
-
-<h2>Dashboard</h2>
-@section Breadcrumbs {
-    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
-        </ol>
-    </nav>
-}
-
-<div class="row">
-    <div class="col-md-3">
-        <div class="card p-3 mb-3">
-            <strong>Total:</strong> @ViewBag.TotalTasks
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card p-3 mb-3">
-            <strong>Finished:</strong> @ViewBag.FinishedTasks
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card p-3 mb-3">
-            <strong>In progress:</strong> @ViewBag.InProgressTasks
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card p-3 mb-3">
-            <strong>Overdue:</strong> @ViewBag.OverdueTasks
-        </div>
-    </div>
-</div>
-
+﻿@using System
+@using System.Linq
+@using System.Web.Helpers
+@using Planity.Models
 @{
+    ViewBag.Title = "Dashboard";
     var total = (int)(ViewBag.TotalTasks ?? 0);
     var finished = (int)(ViewBag.FinishedTasks ?? 0);
-    var percent = total > 0 ? (finished * 100 / total) : 0;
+    var inProgress = (int)(ViewBag.InProgressTasks ?? 0);
+    var overdue = (int)(ViewBag.OverdueTasks ?? 0);
+    var percent = total > 0 ? (int)Math.Round((double)finished * 100 / total) : 0;
+
+    var weeklySubjects = ViewBag.WeeklySubjects as IEnumerable<Subject> ?? Enumerable.Empty<Subject>();
+    var allSubjects = ViewBag.AllSubjects as IEnumerable<Subject> ?? Enumerable.Empty<Subject>();
+    var myDayTasks = ViewBag.MyDayTasks as IEnumerable<TaskItem> ?? Enumerable.Empty<TaskItem>();
+    var upcomingDeadlines = ViewBag.UpcomingDeadlines as IEnumerable<TaskItem> ?? Enumerable.Empty<TaskItem>();
+    var calendarEvents = ViewBag.CalendarEvents ?? new object[0];
+    var gpaSubjects = ViewBag.GpaSubjects as IEnumerable<Subject> ?? Enumerable.Empty<Subject>();
+
+    Func<DateTime?, string> formatTime = date =>
+        date.HasValue ? date.Value.ToString("HH:mm") : "--:--";
+    Func<DateTime?, string> formatRemaining = date =>
+    {
+        if (!date.HasValue) return "No due date";
+        var diff = date.Value - DateTime.Now;
+        if (diff.TotalMinutes <= 0) return "Overdue";
+        if (diff.TotalHours < 24) return $"{Math.Ceiling(diff.TotalHours)}h left";
+        return $"{Math.Ceiling(diff.TotalDays)}d left";
+    };
 }
-<div class="progress">
-    <div class="progress-bar" role="progressbar" style="width:@percent%">
-        @percent%
+
+@section Styles {
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
+    <style>
+        .dashboard-page {
+            font-family: "Inter", "Roboto", "Segoe UI", sans-serif;
+            background: #f2f5f8;
+            padding: 6px 6px 20px;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+
+        .dashboard-clock {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            letter-spacing: 0.06em;
+        }
+
+        .dashboard-date {
+            color: #6c757d;
+            font-size: 1rem;
+        }
+
+        .dash-card {
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(24, 33, 30, 0.08);
+            box-shadow: 0 12px 28px rgba(24, 33, 30, 0.08);
+            backdrop-filter: blur(8px);
+            padding: 16px;
+        }
+
+        .dash-card h5,
+        .dash-card h6 {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .card-header-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .card-header-inline i {
+            color: var(--primary-color);
+        }
+
+        .pomodoro-ring {
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .pomodoro-time {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .pomodoro-presets .btn {
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        .gpa-row input {
+            max-width: 100%;
+        }
+
+        .gpa-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed rgba(24, 33, 30, 0.12);
+        }
+
+        .gpa-entry:last-child {
+            border-bottom: none;
+        }
+
+        .gpa-form select,
+        .gpa-form input {
+            max-width: 100%;
+        }
+
+        .weekly-day {
+            min-height: 160px;
+        }
+
+        .weekly-day-title {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 10px;
+        }
+
+        .weekly-day.is-drop-target {
+            outline: 2px dashed var(--primary-color);
+            outline-offset: 6px;
+        }
+
+        .routine-card {
+            border-radius: 12px;
+            border-left: 4px solid var(--primary-color);
+            background: #fff;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 8px 18px rgba(24, 33, 30, 0.08);
+            cursor: grab;
+            position: relative;
+        }
+
+        .routine-card:active {
+            cursor: grabbing;
+        }
+
+        .routine-time {
+            color: #6c757d;
+            font-size: 0.8rem;
+        }
+
+        .routine-delete {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            border: none;
+            background: transparent;
+            color: #a1a7ad;
+            font-size: 0.75rem;
+            opacity: 0;
+        }
+
+        .routine-card:hover .routine-delete {
+            opacity: 1;
+        }
+
+        .schedule-sidebar {
+            border: 1px solid var(--accent-color);
+            background: #fff;
+            border-radius: 16px;
+            padding: 12px;
+        }
+
+        .schedule-group {
+            border-bottom: 1px dashed rgba(24, 33, 30, 0.12);
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .schedule-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .schedule-group-toggle {
+            width: 100%;
+            text-align: left;
+            border: none;
+            background: transparent;
+            padding: 6px 4px;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .schedule-subject {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(24, 33, 30, 0.08);
+            background: #f9fbfc;
+            margin-bottom: 6px;
+            cursor: grab;
+        }
+
+        .schedule-subject:active {
+            cursor: grabbing;
+        }
+
+        .myday-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px dashed rgba(24, 33, 30, 0.12);
+        }
+
+        .myday-item:last-child {
+            border-bottom: none;
+        }
+
+        .myday-item.is-done .myday-title {
+            text-decoration: line-through;
+            color: #7a8086;
+        }
+
+        .deadline-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(24, 33, 30, 0.1);
+        }
+
+        .deadline-item:last-child {
+            border-bottom: none;
+        }
+
+        .badge-soft {
+            background: var(--secondary-color);
+            color: var(--dark-color);
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 220px;
+        }
+
+        .calendar-wrap {
+            margin-top: 6px;
+        }
+    </style>
+}
+
+<div class="dashboard-page">
+    <div class="dashboard-header">
+        <div id="dashClock" class="dashboard-clock">00:00</div>
+        <div id="dashDate" class="dashboard-date">Monday, Feb 9, 2026</div>
+        <div id="quickAccess" class="dashboard-buttons">
+            <p class="mt-3">
+                @Html.ActionLink("Manage Subjects", "Index", "Subjects", null, new { @class = "btn btn-primary" })
+                @Html.ActionLink("Manage Tasks", "Index", "TaskItems", null, new { @class = "btn btn-secondary" })
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-3">
+            <div class="dash-card mb-3">
+                <div class="card-header-inline">
+                    <i class="fa-solid fa-clock"></i>
+                    <h5 class="mb-0">Focus Timer</h5>
+                </div>
+                <div class="d-flex flex-column align-items-center">
+                    <svg width="140" height="140" viewBox="0 0 140 140">
+                        <circle cx="70" cy="70" r="54" stroke="#e6edf1" stroke-width="12" fill="none"></circle>
+                        <circle id="pomodoroRing" class="pomodoro-ring" cx="70" cy="70" r="54" stroke="var(--primary-color)" stroke-width="12" fill="none" stroke-linecap="round"></circle>
+                    </svg>
+                    <div id="pomodoroTime" class="pomodoro-time">25:00</div>
+                    <div class="pomodoro-presets d-flex gap-2 mt-2">
+                        <button class="btn btn-outline-secondary btn-sm" data-duration="25">25m</button>
+                        <button class="btn btn-outline-secondary btn-sm" data-duration="5">5m</button>
+                        <button class="btn btn-outline-secondary btn-sm" data-duration="15">15m</button>
+                    </div>
+                    <div class="d-flex gap-2 mt-2">
+                        <button id="pomodoroStart" class="btn btn-primary btn-sm">Start</button>
+                        <button id="pomodoroReset" class="btn btn-outline-secondary btn-sm">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="card-header-inline">
+                    <i class="fa-solid fa-calculator"></i>
+                    <h5 class="mb-0">GPA Calculator</h5>
+                </div>
+                <div id="gpaEntries">
+                    <div id="gpaEmpty" class="text-muted" style="@(gpaSubjects.Any(s => s.Grades.Any(g => g.Type != null && g.Type.Equals("Final", StringComparison.OrdinalIgnoreCase))) ? "display:none" : "display:block")">
+                        No final grades yet.
+                    </div>
+
+                    @foreach (var subject in gpaSubjects)
+                    {
+                        var finalGrade = subject.Grades.FirstOrDefault(g => g.Type != null && g.Type.Equals("Final", StringComparison.OrdinalIgnoreCase));
+                        if (finalGrade != null)
+                        {
+                            var gradeInt = (int)Math.Round(finalGrade.Value);
+                            <div class="gpa-entry" data-subject-id="@subject.Id" data-credits="@subject.Credits" data-grade="@gradeInt">
+                                <div>
+                                    <div class="fw-semibold">@subject.Name</div>
+                                    <div class="text-muted small">Credits: @subject.Credits</div>
+                                </div>
+                                <div class="text-end">
+                                <div class="fw-bold grade-display">@gradeInt</div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="gpa-form row g-2 mt-3">
+                    <div class="col-12">
+                        <select id="gpaSubjectSelect" class="form-select form-select-sm">
+                            <option value="">Select subject...</option>
+                            @foreach (var subject in gpaSubjects)
+                            {
+                                var finalGrade = subject.Grades.FirstOrDefault(g => g.Type != null && g.Type.Equals("Final", StringComparison.OrdinalIgnoreCase));
+                                var gradeInt = finalGrade != null ? (int?)Math.Round(finalGrade.Value) : null;
+                                <option value="@subject.Id"
+                                        data-credits="@subject.Credits"
+                                        data-final="@gradeInt"
+                                        data-name="@subject.Name">
+                                    @subject.Name (@subject.Credits cr)
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-7">
+                        <input id="gpaFinalGrade" type="number" step="1" min="1" max="10" class="form-control form-control-sm" placeholder="Final grade">
+                    </div>
+                    <div class="col-5">
+                        <button id="gpaAdd" class="btn btn-outline-secondary btn-sm w-100" type="button">Add</button>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <span class="badge-soft">GPA: <span id="gpaValue">0.00</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="dash-card mb-3">
+                <div class="card-header-inline">
+                    <i class="fa-solid fa-calendar-week"></i>
+                    <h5 class="mb-0">Weekly Routine</h5>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12 col-lg-3">
+                        <div class="schedule-sidebar">
+                            <button class="btn btn-outline-secondary btn-sm w-100 mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#subjectsDropdown" aria-expanded="false">
+                                <i class="fa-solid fa-chevron-down me-1"></i> My Subjects
+                            </button>
+                            <div id="subjectsDropdown" class="collapse">
+                            @{
+                                var subjectGroups = allSubjects
+                                    .GroupBy(s => new { s.Year, s.Semester })
+                                    .OrderBy(g => g.Key.Year)
+                                    .ThenBy(g => g.Key.Semester)
+                                    .ToList();
+                            }
+                            @if (!subjectGroups.Any())
+                            {
+                                <div class="text-muted small">No subjects available.</div>
+                            }
+                            else
+                            {
+                                var groupIndex = 0;
+                                foreach (var group in subjectGroups)
+                                {
+                                    var collapseId = $"scheduleGroup{groupIndex}";
+                                    <div class="schedule-group">
+                                        <button class="schedule-group-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId" aria-expanded="true">
+                                            Year @group.Key.Year · Semester @group.Key.Semester
+                                        </button>
+                                        <div class="collapse show" id="@collapseId">
+                                            @foreach (var subject in group)
+                                            {
+                                                <div class="schedule-subject"
+                                                     draggable="true"
+                                                     data-subject-id="@subject.Id"
+                                                     data-subject-name="@subject.Name">
+                                                    <i class="fa-solid fa-grip-vertical text-muted"></i>
+                                                    <span>@subject.Name</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                    groupIndex++;
+                                }
+                            }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-9">
+                        @{
+                            var weekdays = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday };
+                        }
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-5 g-3 weekly-routine">
+                            @foreach (var day in weekdays)
+                            {
+                                var daySubjects = weeklySubjects
+                                    .Where(s => s.ScheduleDay.HasValue && s.ScheduleDay.Value == day)
+                                    .OrderBy(s => s.ScheduleTimeSlot ?? string.Empty)
+                                    .ToList();
+                                <div class="col">
+                                    <div class="weekly-day" data-day="@((int)day)">
+                                        <div class="weekly-day-title">@day</div>
+                                        @if (!daySubjects.Any())
+                                        {
+                                            <div class="text-muted small">No classes</div>
+                                        }
+                                        else
+                                        {
+                                            foreach (var subject in daySubjects)
+                                            {
+                                        <div class="routine-card"
+                                             draggable="true"
+                                             data-card-id="@Guid.NewGuid().ToString("N")"
+                                             data-subject-id="@subject.Id"
+                                             data-subject-name="@subject.Name">
+                                                    <div class="routine-time">@subject.ScheduleTimeSlot</div>
+                                                    <div class="fw-semibold">@subject.Name</div>
+                                            <button type="button" class="routine-delete" title="Remove">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card mb-3">
+                <div class="card-header-inline">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <h5 class="mb-0">Task Overview</h5>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="tasksChart"></canvas>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="card-header-inline">
+                    <i class="fa-solid fa-list-check"></i>
+                    <h5 class="mb-0">My Day</h5>
+                </div>
+                <div id="myDayList">
+                    @if (!myDayTasks.Any())
+                    {
+                        <div class="text-muted">No tasks due today.</div>
+                    }
+                    else
+                    {
+                        foreach (var task in myDayTasks)
+                        {
+                            var isDone = task.Status == TaskStatus.Done;
+                            <div class="myday-item @(isDone ? "is-done" : "")" data-task-id="@task.Id">
+                                <input class="form-check-input myday-toggle" type="checkbox" @(isDone ? "checked" : "") />
+                                <div>
+                                    <div class="myday-title fw-semibold">@task.Title</div>
+                                    <div class="text-muted small">@formatTime(task.DueDate) • @task.Type</div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-3">
+            <div class="dash-card mb-3">
+                <div class="card-header-inline">
+                    <i class="fa-solid fa-calendar"></i>
+                    <h5 class="mb-0">Calendar</h5>
+                </div>
+                <div id="dashboardCalendar" class="calendar-wrap"></div>
+            </div>
+
+            <div class="dash-card">
+                <div class="card-header-inline">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                    <h5 class="mb-0">Upcoming Deadlines</h5>
+                </div>
+                @if (!upcomingDeadlines.Any())
+                {
+                    <div class="text-muted">No upcoming deadlines.</div>
+                }
+                else
+                {
+                    foreach (var task in upcomingDeadlines)
+                    {
+                        <div class="deadline-item">
+                            <div>
+                                <div class="fw-semibold">@task.Title</div>
+                                <div class="text-muted small">@formatTime(task.DueDate)</div>
+                            </div>
+                            <span class="badge-soft">@formatRemaining(task.DueDate)</span>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
     </div>
 </div>
 
-<p class="mt-3">
-    @Html.ActionLink("Manage Subjects", "Index", "Subjects", null, new { @class = "btn btn-primary" })
-    @Html.ActionLink("Manage Tasks", "Index", "TaskItems", null, new { @class = "btn btn-secondary" })
-</p>
+@using (Html.BeginForm(null, null, FormMethod.Post, new { id = "__AjaxAntiForgeryForm" }))
+{
+    @Html.AntiForgeryToken()
+}
+
+@section scripts {
+    <script type="module">
+        import { createDraggable } from 'https://cdn.jsdelivr.net/npm/animejs@4.0.0-beta.2/+esm';
+        window.createDraggable = createDraggable;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script>
+        (function () {
+            function updateClock() {
+                var now = new Date();
+                var time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                var date = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+                document.getElementById('dashClock').textContent = time;
+                document.getElementById('dashDate').textContent = date;
+            }
+            updateClock();
+            setInterval(updateClock, 30000);
+
+            var ring = document.getElementById('pomodoroRing');
+            var ringRadius = 54;
+            var ringCircumference = 2 * Math.PI * ringRadius;
+            ring.style.strokeDasharray = ringCircumference;
+
+            var selectedMinutes = 25;
+            var duration = selectedMinutes * 60;
+            var remaining = duration;
+            var timerId = null;
+
+            function setRing(percent) {
+                ring.style.strokeDashoffset = ringCircumference * (1 - percent);
+            }
+
+            function renderPomodoro() {
+                var minutes = Math.floor(remaining / 60);
+                var seconds = remaining % 60;
+                document.getElementById('pomodoroTime').textContent =
+                    minutes + ':' + seconds.toString().padStart(2, '0');
+                setRing(duration > 0 ? remaining / duration : 0);
+            }
+
+            function setDuration(mins) {
+                selectedMinutes = mins;
+                duration = mins * 60;
+                remaining = duration;
+                renderPomodoro();
+            }
+
+            document.querySelectorAll('.pomodoro-presets button').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    setDuration(parseInt(btn.getAttribute('data-duration'), 10));
+                });
+            });
+
+            document.getElementById('pomodoroStart').addEventListener('click', function () {
+                if (timerId) return;
+                timerId = setInterval(function () {
+                    remaining = Math.max(0, remaining - 1);
+                    renderPomodoro();
+                    if (remaining === 0) {
+                        clearInterval(timerId);
+                        timerId = null;
+                    }
+                }, 1000);
+            });
+
+            document.getElementById('pomodoroReset').addEventListener('click', function () {
+                if (timerId) {
+                    clearInterval(timerId);
+                    timerId = null;
+                }
+                setDuration(selectedMinutes);
+            });
+
+            renderPomodoro();
+
+            function updateGpa() {
+                var totalGrades = 0;
+                var subjectCount = 0;
+                document.querySelectorAll('#gpaEntries .gpa-entry').forEach(function (row) {
+                    var grade = parseInt(row.getAttribute('data-grade'), 10);
+                    if (!isNaN(grade)) {
+                        totalGrades += grade;
+                        subjectCount += 1;
+                    }
+                });
+                var gpa = subjectCount > 0 ? (totalGrades / subjectCount) : 0;
+                document.getElementById('gpaValue').textContent = gpa.toFixed(2);
+                var empty = document.getElementById('gpaEmpty');
+                if (empty) {
+                    empty.style.display = subjectCount > 0 ? 'none' : 'block';
+                }
+            }
+
+            function upsertGpaEntry(subjectId, name, credits, grade) {
+                var existing = document.querySelector('#gpaEntries .gpa-entry[data-subject-id="' + subjectId + '"]');
+                if (existing) {
+                    existing.setAttribute('data-grade', grade);
+                    existing.setAttribute('data-credits', credits);
+                    existing.querySelector('.fw-semibold').textContent = name;
+                    existing.querySelector('.text-muted.small').textContent = 'Credits: ' + credits;
+                    existing.querySelector('.text-end .fw-semibold').textContent = grade;
+                    return;
+                }
+
+                var entry = document.createElement('div');
+                entry.className = 'gpa-entry';
+                entry.setAttribute('data-subject-id', subjectId);
+                entry.setAttribute('data-credits', credits);
+                entry.setAttribute('data-grade', grade);
+                entry.innerHTML =
+                    '<div>' +
+                    '<div class="fw-semibold">' + name + '</div>' +
+                    '<div class="text-muted small">Credits: ' + credits + '</div>' +
+                    '</div>' +
+                    '<div class="text-end">' +
+                    '<div class="fw-semibold">' + grade + '</div>' +
+                    '</div>';
+                document.getElementById('gpaEntries').appendChild(entry);
+            }
+
+            document.getElementById('gpaAdd').addEventListener('click', function () {
+                var select = document.getElementById('gpaSubjectSelect');
+                var subjectId = select.value;
+                if (!subjectId) return;
+                var selectedOption = select.options[select.selectedIndex];
+                var name = selectedOption.getAttribute('data-name') || selectedOption.text;
+                var credits = parseInt(selectedOption.getAttribute('data-credits'), 10);
+                var inputGrade = parseInt(document.getElementById('gpaFinalGrade').value, 10);
+                var finalFromOption = parseInt(selectedOption.getAttribute('data-final'), 10);
+                var grade = !isNaN(inputGrade) ? inputGrade : finalFromOption;
+                if (isNaN(grade) || grade < 1 || grade > 10) {
+                    bootbox.alert("Final grade must be an integer between 1 and 10.");
+                    return;
+                }
+
+                $.post('@Url.Action("UpdateGrade", "Subjects")', {
+                    id: subjectId,
+                    value: grade,
+                    __RequestVerificationToken: token
+                }).done(function (res) {
+                    if (res && res.success) {
+                        upsertGpaEntry(subjectId, name, credits, grade);
+                        selectedOption.setAttribute('data-final', grade);
+                        updateGpa();
+                        document.getElementById('gpaFinalGrade').value = '';
+                    } else {
+                        bootbox.alert("Could not save the grade.");
+                    }
+                }).fail(function () {
+                    bootbox.alert("Could not save the grade.");
+                });
+            });
+
+            updateGpa();
+
+            var token = $('input[name="__RequestVerificationToken"]', $('#__AjaxAntiForgeryForm')).val();
+
+            function clearDropTargets() {
+                document.querySelectorAll('.weekly-day.is-drop-target').forEach(function (zone) {
+                    zone.classList.remove('is-drop-target');
+                });
+            }
+
+            function getDropZone(clientX, clientY) {
+                var element = document.elementFromPoint(clientX, clientY);
+                return element ? element.closest('.weekly-day') : null;
+            }
+
+            function handleDrop(subjectId, subjectName, day, timeSlot, existingCard) {
+                $.post('@Url.Action("UpdateSchedule", "Subjects")', {
+                    id: subjectId,
+                    scheduleDay: day,
+                    scheduleTimeSlot: timeSlot,
+                    __RequestVerificationToken: token
+                }).done(function (res) {
+                    if (!res || !res.success) {
+                        bootbox.alert((res && res.message) ? res.message : "Could not update schedule.");
+                        return;
+                    }
+                    var zone = document.querySelector('.weekly-day[data-day="' + day + '"]');
+                    if (!zone) return;
+
+                    if (existingCard) {
+                        if (res.timeSlot && existingCard.querySelector('.routine-time')) {
+                            existingCard.querySelector('.routine-time').textContent = res.timeSlot;
+                        }
+                        zone.appendChild(existingCard);
+                        return;
+                    }
+
+                    var firstCard = document.querySelector('.routine-card[data-subject-id="' + subjectId + '"]');
+                    if (firstCard) {
+                        if (res.timeSlot && firstCard.querySelector('.routine-time')) {
+                            firstCard.querySelector('.routine-time').textContent = res.timeSlot;
+                        }
+                        zone.appendChild(firstCard);
+                    }
+
+                    var card = document.createElement('div');
+                    card.className = 'routine-card';
+                    card.setAttribute('data-subject-id', subjectId);
+                    card.setAttribute('data-subject-name', subjectName);
+                    card.innerHTML =
+                        '<div class="routine-time">' + (res.timeSlot || '') + '</div>' +
+                        '<div class="fw-semibold">' + subjectName + '</div>' +
+                        '<button type="button" class="routine-delete" title="Remove">' +
+                        '<i class="fa-solid fa-xmark"></i>' +
+                        '</button>';
+                    zone.appendChild(card);
+                    wireRoutineCardDrag(card);
+                }).fail(function () {
+                    bootbox.alert("Could not update schedule.");
+                });
+            }
+
+            function updateCardTime(card, newTime) {
+                var day = card.closest('.weekly-day') ? card.closest('.weekly-day').getAttribute('data-day') : null;
+                var subjectId = card.getAttribute('data-subject-id');
+                if (!day || !subjectId) return;
+
+                $.post('@Url.Action("UpdateSchedule", "Subjects")', {
+                    id: subjectId,
+                    scheduleDay: day,
+                    scheduleTimeSlot: newTime,
+                    __RequestVerificationToken: token
+                }).done(function (res) {
+                    if (!res || !res.success) {
+                        bootbox.alert((res && res.message) ? res.message : "Could not update schedule.");
+                        return;
+                    }
+                    if (res.timeSlot && card.querySelector('.routine-time')) {
+                        card.querySelector('.routine-time').textContent = res.timeSlot;
+                    }
+                }).fail(function () {
+                    bootbox.alert("Could not update schedule.");
+                });
+            }
+
+            function wireRoutineCardDrag(card) {
+                if (!card.getAttribute('data-card-id')) {
+                    card.setAttribute('data-card-id', 'card-' + Date.now() + '-' + Math.floor(Math.random() * 10000));
+                }
+                card.setAttribute('draggable', 'true');
+                card.addEventListener('dblclick', function () {
+                    var currentTime = (card.querySelector('.routine-time') || {}).textContent || '';
+                    bootbox.prompt({
+                        title: "Update time slot",
+                        value: currentTime,
+                        callback: function (result) {
+                            if (result === null) return;
+                            updateCardTime(card, result);
+                        }
+                    });
+                });
+
+                if (!window.createDraggable) {
+                    card.addEventListener('dragstart', function (event) {
+                        event.dataTransfer.setData('drag-source', 'card');
+                        event.dataTransfer.setData('card-id', card.getAttribute('data-card-id'));
+                        event.dataTransfer.setData('subject-id', card.getAttribute('data-subject-id'));
+                        event.dataTransfer.setData('subject-name', card.getAttribute('data-subject-name'));
+                    });
+                    return;
+                }
+
+                window.createDraggable(card, {
+                    onDrag: function (event) {
+                        var zone = getDropZone(event.clientX, event.clientY);
+                        clearDropTargets();
+                        if (zone) zone.classList.add('is-drop-target');
+                    },
+                    onRelease: function (event) {
+                        clearDropTargets();
+                        var zone = getDropZone(event.clientX, event.clientY);
+                        if (!zone) return;
+                        var day = zone.getAttribute('data-day');
+                        var subjectId = card.getAttribute('data-subject-id');
+                        var subjectName = card.getAttribute('data-subject-name') || '';
+                        var timeSlot = (card.querySelector('.routine-time') || {}).textContent || '';
+                        if (!subjectId || !day) return;
+
+                        handleDrop(subjectId, subjectName, day, timeSlot, card);
+                    }
+                });
+            }
+
+            function wireSubjectDrag(item) {
+                if (!window.createDraggable) {
+                    item.addEventListener('dragstart', function (event) {
+                        event.dataTransfer.setData('drag-source', 'subject');
+                        event.dataTransfer.setData('subject-id', item.getAttribute('data-subject-id'));
+                        event.dataTransfer.setData('subject-name', item.getAttribute('data-subject-name'));
+                    });
+                    return;
+                }
+
+                window.createDraggable(item, {
+                    onDrag: function (event) {
+                        var zone = getDropZone(event.clientX, event.clientY);
+                        clearDropTargets();
+                        if (zone) zone.classList.add('is-drop-target');
+                    },
+                    onRelease: function (event) {
+                        clearDropTargets();
+                        var zone = getDropZone(event.clientX, event.clientY);
+                        if (!zone) return;
+                        var subjectId = item.getAttribute('data-subject-id');
+                        var subjectName = item.getAttribute('data-subject-name') || '';
+                        var day = zone.getAttribute('data-day');
+                        if (!subjectId || !day) return;
+
+                        bootbox.prompt({
+                            title: "Set time slot",
+                            value: "",
+                            callback: function (result) {
+                                if (result === null) return;
+                                handleDrop(subjectId, subjectName, day, result, null);
+                            }
+                        });
+                    }
+                });
+            }
+
+            document.querySelectorAll('.routine-card').forEach(function (card) {
+                wireRoutineCardDrag(card);
+            });
+
+            document.querySelectorAll('.schedule-subject').forEach(function (item) {
+                wireSubjectDrag(item);
+            });
+
+            document.addEventListener('click', function (event) {
+                var deleteBtn = event.target.closest('.routine-delete');
+                if (!deleteBtn) return;
+                var card = deleteBtn.closest('.routine-card');
+                if (card) card.remove();
+            });
+
+            if (!window.createDraggable) {
+                document.querySelectorAll('.weekly-day').forEach(function (zone) {
+                    zone.addEventListener('dragover', function (event) {
+                        event.preventDefault();
+                        zone.classList.add('is-drop-target');
+                    });
+                    zone.addEventListener('dragleave', function () {
+                        zone.classList.remove('is-drop-target');
+                    });
+                    zone.addEventListener('drop', function (event) {
+                        event.preventDefault();
+                        zone.classList.remove('is-drop-target');
+                        var source = event.dataTransfer.getData('drag-source');
+                        var subjectId = event.dataTransfer.getData('subject-id');
+                        var subjectName = event.dataTransfer.getData('subject-name') || '';
+                        var day = zone.getAttribute('data-day');
+                        if (!subjectId || !day) return;
+
+                        if (source === 'card') {
+                            var cardId = event.dataTransfer.getData('card-id');
+                            var card = document.querySelector('.routine-card[data-card-id="' + cardId + '"]');
+                            var timeSlot = card && card.querySelector('.routine-time') ? card.querySelector('.routine-time').textContent : '';
+                            handleDrop(subjectId, subjectName, day, timeSlot, card || null);
+                            return;
+                        }
+
+                        bootbox.prompt({
+                            title: "Set time slot",
+                            value: "",
+                            callback: function (result) {
+                                if (result === null) return;
+                                handleDrop(subjectId, subjectName, day, result, null);
+                            }
+                        });
+                    });
+                });
+            }
+
+            if (window.Chart) {
+                var ctx = document.getElementById('tasksChart');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Done', 'In Progress', 'Overdue'],
+                            datasets: [{
+                                data: [@finished, @inProgress, @overdue],
+                                backgroundColor: ['#89BFD0', '#E0E9EF', '#F2B3B3'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { position: 'bottom' }
+                            },
+                            cutout: '65%'
+                        }
+                    });
+                }
+            }
+
+            var calendarEl = document.getElementById('dashboardCalendar');
+            if (calendarEl && window.FullCalendar) {
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    height: 320,
+                    headerToolbar: {
+                        left: 'prev,next',
+                        center: 'title',
+                        right: ''
+                    },
+                    events: @Html.Raw(Json.Encode(calendarEvents))
+                });
+                calendar.render();
+            }
+
+            $('#myDayList').on('change', '.myday-toggle', function () {
+                var row = $(this).closest('.myday-item');
+                var id = row.data('task-id');
+                var status = this.checked ? 'Done' : 'InProgress';
+                row.toggleClass('is-done', this.checked);
+
+                $.post('@Url.Action("UpdateStatus", "TaskItems")', {
+                    id: id,
+                    status: status,
+                    __RequestVerificationToken: token
+                });
+            });
+        })();
+    </script>
+}

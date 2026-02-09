@@ -206,8 +206,13 @@
     <Compile Include="Migrations\202602091113088_TaskRepeat.Designer.cs">
       <DependentUpon>202602091113088_TaskRepeat.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202602091522076_UpdateSubjectModel.cs" />
+    <Compile Include="Migrations\202602091522076_UpdateSubjectModel.Designer.cs">
+      <DependentUpon>202602091522076_UpdateSubjectModel.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
+    <Compile Include="Models\DashboardViewModels.cs" />
     <Compile Include="Models\Grade.cs" />
     <Compile Include="Models\Group.cs" />
     <Compile Include="Models\GroupMember.cs" />
@@ -597,6 +602,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202602091113088_TaskRepeat.resx">
       <DependentUpon>202602091113088_TaskRepeat.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202602091522076_UpdateSubjectModel.resx">
+      <DependentUpon>202602091522076_UpdateSubjectModel.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
