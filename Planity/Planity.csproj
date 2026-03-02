@@ -175,7 +175,6 @@
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\ManageController.cs" />
     <Compile Include="Controllers\ProgressController.cs" />
-    <Compile Include="Controllers\StudyPlansController.cs" />
     <Compile Include="Controllers\SubjectsController.cs" />
     <Compile Include="Controllers\TaskItemsController.cs" />
     <Compile Include="Controllers\UserAdminController.cs" />
@@ -210,6 +209,14 @@
     <Compile Include="Migrations\202602091522076_UpdateSubjectModel.Designer.cs">
       <DependentUpon>202602091522076_UpdateSubjectModel.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202602241457331_UpdateDatabaseSchema.cs" />
+    <Compile Include="Migrations\202602241457331_UpdateDatabaseSchema.Designer.cs">
+      <DependentUpon>202602241457331_UpdateDatabaseSchema.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202603021035043_UpdateDatabaseSchema1.cs" />
+    <Compile Include="Migrations\202603021035043_UpdateDatabaseSchema1.Designer.cs">
+      <DependentUpon>202603021035043_UpdateDatabaseSchema1.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\DashboardViewModels.cs" />
@@ -218,7 +225,6 @@
     <Compile Include="Models\GroupMember.cs" />
     <Compile Include="Models\IdentityModels.cs" />
     <Compile Include="Models\ManageViewModels.cs" />
-    <Compile Include="Models\StudyPlan.cs" />
     <Compile Include="Models\Subject.cs" />
     <Compile Include="Models\TaskItem.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -605,6 +611,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202602091522076_UpdateSubjectModel.resx">
       <DependentUpon>202602091522076_UpdateSubjectModel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202602241457331_UpdateDatabaseSchema.resx">
+      <DependentUpon>202602241457331_UpdateDatabaseSchema.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202603021035043_UpdateDatabaseSchema1.resx">
+      <DependentUpon>202603021035043_UpdateDatabaseSchema1.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

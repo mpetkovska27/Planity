@@ -22,7 +22,6 @@ namespace Planity.Controllers
             string currentUserId = User.Identity.GetUserId();
             var query = db.TaskItems
                         .Include(t => t.Group)
-                        .Include(t => t.StudyPlan)
                         .Include(t => t.Subject)
                         .Include(t => t.User);
 
@@ -118,7 +117,6 @@ namespace Planity.Controllers
         {
             string currentUserId = User.Identity.GetUserId();
             ViewBag.GroupId = new SelectList(db.Groups.Where(g => g.TeamLeaderId == currentUserId || g.Members.Any(m => m.UserId == currentUserId)), "Id", "Name");
-            ViewBag.StudyPlanId = new SelectList(db.StudyPlans.Where(s => s.UserId == currentUserId), "Id", "Name");
             ViewBag.SubjectId = new SelectList(db.Subjects.Where(s => s.UserId == currentUserId), "Id", "Name");
             return View();
         }
@@ -127,13 +125,21 @@ namespace Planity.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for 
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "Id,Title,Description,Type,Priority,Status,DueDate,Repeat,PlanedHours,SubjectId,IsGroupTask,GroupId,StudyPlanId,UserId")] TaskItem taskItem)
+[ValidateAntiForgeryToken]
+        public ActionResult Create([Bind(Include = "Id,Title,Description,Type,Priority,Status,DueDate,Repeat,SubjectId,IsGroupTask,GroupId,UserId")] TaskItem taskItem, HttpPostedFileBase attachedFile)
         {
             if (string.IsNullOrEmpty(taskItem.UserId)) taskItem.UserId = User.Identity.GetUserId();
 
             if (ModelState.IsValid)
             {
+                if (attachedFile != null && attachedFile.ContentLength > 0)
+                {
+                    string fileName = Guid.NewGuid().ToString() + "_" + System.IO.Path.GetFileName(attachedFile.FileName);
+                    string path = System.IO.Path.Combine(Server.MapPath("~/Uploads/Tasks/"), fileName);
+                    attachedFile.SaveAs(path);
+                    taskItem.AttachedFilePath = "/Uploads/Tasks/" + fileName;
+                }
+
                 db.TaskItems.Add(taskItem);
                 db.SaveChanges();
                 return RedirectToAction("Index");
@@ -156,7 +162,6 @@ namespace Planity.Controllers
                 return HttpNotFound();
             }
             ViewBag.GroupId = new SelectList(db.Groups, "Id", "Name", taskItem.GroupId);
-            ViewBag.StudyPlanId = new SelectList(db.StudyPlans.Where(s => s.UserId == currentUserId), "Id", "Name", taskItem.StudyPlanId);
             ViewBag.SubjectId = new SelectList(db.Subjects.Where(s => s.UserId == currentUserId), "Id", "Name", taskItem.SubjectId);
             return View(taskItem);
         }
@@ -166,8 +171,9 @@ namespace Planity.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit([Bind(Include = "Id,Title,Description,Type,Priority,Status,DueDate,Repeat,PlanedHours,SubjectId,IsGroupTask,GroupId,StudyPlanId")] TaskItem taskItem)
+        public ActionResult Edit([Bind(Include = "Id,Title,Description,Type,Priority,Status,DueDate,Repeat,SubjectId,IsGroupTask,GroupId,AttachedFilePath")] TaskItem taskItem, HttpPostedFileBase attachedFile)
         {
+            string currentUserId = User.Identity.GetUserId();
             if (!User.IsInRole("Admin") && taskItem.UserId != User.Identity.GetUserId()) 
             {
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
@@ -175,10 +181,26 @@ namespace Planity.Controllers
 
             if (ModelState.IsValid)
             {
+                if (attachedFile != null && attachedFile.ContentLength > 0)
+                {
+                    string directoryPath = Server.MapPath("~/Uploads/Tasks/");
+                    if (!System.IO.Directory.Exists(directoryPath))
+                    {
+                        System.IO.Directory.CreateDirectory(directoryPath);
+                    }
+                    string fileName = Guid.NewGuid().ToString() + "_" + System.IO.Path.GetFileName(attachedFile.FileName);
+                    string path = System.IO.Path.Combine(directoryPath, fileName);
+                    attachedFile.SaveAs(path);
+                    taskItem.AttachedFilePath = "/Uploads/Tasks/" + fileName;
+                }
+
                 db.Entry(taskItem).State = EntityState.Modified;
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
+
+            ViewBag.GroupId = new SelectList(db.Groups, "Id", "Name", taskItem.GroupId);
+            ViewBag.SubjectId = new SelectList(db.Subjects.Where(s => s.UserId == currentUserId), "Id", "Name", taskItem.SubjectId);
             return View(taskItem);
         }
 
@@ -214,12 +236,10 @@ namespace Planity.Controllers
                     Status = TaskStatus.ToDo,
                     DueDate = nextDueDate,
                     Repeat = repeatSetting,
-                    PlanedHours = taskItem.PlanedHours,
                     SubjectId = taskItem.SubjectId,
                     UserId = taskItem.UserId,
                     IsGroupTask = taskItem.IsGroupTask,
                     GroupId = taskItem.GroupId,
-                    StudyPlanId = taskItem.StudyPlanId,
                     ParentTaskId = taskItem.ParentTaskId
                 };
                 db.TaskItems.Add(repeatedTask);

@@ -14,7 +14,6 @@ namespace Planity.Models
         public virtual System.Collections.Generic.ICollection<Subject> Subjects { get; set; } = new List<Subject>();
         public virtual System.Collections.Generic.ICollection<TaskItem> Tasks { get; set; } = new List<TaskItem>();
         public virtual System.Collections.Generic.ICollection<GroupMember> GroupMembers { get; set; } = new List<GroupMember>();
-        public virtual System.Collections.Generic.ICollection<StudyPlan> StudyPlans { get; set; } = new List<StudyPlan>();
 
         public async Task<ClaimsIdentity> GenerateUserIdentityAsync(UserManager<ApplicationUser> manager)
         {
@@ -36,8 +35,6 @@ namespace Planity.Models
         public DbSet<Group> Groups { get; set; }
         public DbSet<GroupMember> GroupMembers { get; set; }
         public DbSet<Grade> Grades { get; set; }
-        public DbSet<StudyPlan> StudyPlans { get; set; }
-
         public static ApplicationDbContext Create()
         {
             return new ApplicationDbContext();

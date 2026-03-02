@@ -45,14 +45,6 @@
         }
 
         <dt>
-            @Html.DisplayNameFor(model => model.StudyPlan.Name)
-        </dt>
-
-        <dd>
-            @(Model.StudyPlan?.Name ?? "-")
-        </dd>
-
-        <dt>
             @Html.DisplayNameFor(model => model.Subject.Name)
         </dt>
 
@@ -132,11 +124,18 @@
         </dd>
 
         <dt>
-            @Html.DisplayNameFor(model => model.PlanedHours)
+            Attachment
         </dt>
 
         <dd>
-            @Html.DisplayFor(model => model.PlanedHours)
+            @if (!string.IsNullOrEmpty(Model.AttachedFilePath))
+            {
+                @Html.ActionLink(System.IO.Path.GetFileName(Model.AttachedFilePath), "DownloadAttachment", "TaskItems", new { id = Model.Id }, null)
+            }
+            else
+            {
+                <span>-</span>
+            }
         </dd>
 
         <dt>

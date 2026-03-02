@@ -208,7 +208,6 @@ namespace Planity.Controllers
                 Priority = taskPriority,
                 Status = TaskStatus.ToDo,
                 DueDate = resolvedDueDate,
-                PlanedHours = 0,
                 SubjectId = subjectId,
                 UserId = subject.UserId,
                 IsGroupTask = false

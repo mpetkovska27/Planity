@@ -48,9 +48,6 @@ namespace Planity.Models
         public DateTime? DueDate { get; set; }
         [Display(Name = "Repeat")]
         public Repeat? Repeat { get; set; }
-        [Display(Name = "Planed Hours")]
-        [Range(0, 100)]
-        public int? PlanedHours { get; set; }
         //Nullable ja stavame za da ne mora da bide od nekoj predmet
         public int? SubjectId { get; set; }
         [ForeignKey("SubjectId")]
@@ -62,12 +59,10 @@ namespace Planity.Models
         public int? GroupId { get; set; }
         [ForeignKey("GroupId")]
         public virtual Group Group { get; set; }
-        public int? StudyPlanId { get; set; }
-        [ForeignKey("StudyPlanId")]
-        public virtual StudyPlan StudyPlan { get; set; }
         public int? ParentTaskId { get; set; }
         [ForeignKey("ParentTaskId")]
         public virtual TaskItem ParentTask { get; set; }
         public virtual ICollection<TaskItem> SubTasks { get; set; } = new List<TaskItem>();
+        public string AttachedFilePath { get; set; }
     }
 }

@@ -1126,10 +1126,6 @@
                                 '<select class="form-select" name="priority">' + priorityOptions + '</select>' +
                             '</div>' +
                         '</div>' +
-                        '<div class="mb-3 mt-3">' +
-                            '<label class="form-label">Planned Hours</label>' +
-                            '<input type="number" class="form-control" name="planedHours" min="0" max="100" value="0" />' +
-                        '</div>' +
                     '</form>';
 
                 bootbox.dialog({
@@ -1150,8 +1146,6 @@
                                 var subjectId = $form.find("[name='subjectId']").val();
                                 var type = $form.find("[name='type']").val() || defaultType;
                                 var priority = $form.find("[name='priority']").val() || defaultPriority;
-                                var planedHours = $form.find("[name='planedHours']").val() || 0;
-
                                 if (!title || !dueDate) {
                                     bootbox.alert("Please provide a title and due date.");
                                     return false;
@@ -1164,8 +1158,7 @@
                                     DueDate: dueDate,
                                     Type: type,
                                     Priority: priority,
-                                    Status: "ToDo",
-                                    PlanedHours: planedHours
+                                    Status: "ToDo"
                                 };
 
                                 if (subjectId) {
