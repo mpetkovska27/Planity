@@ -8,7 +8,7 @@ using Planity.Models;
 
 namespace Planity.Controllers
 {
-    [Authorize(Roles = "Student,TimLeader,Admin")]
+    [Authorize(Roles = "Student,TeamLeader,Admin")]
     public class ProgressController : Controller
     {
         private readonly ApplicationDbContext db = new ApplicationDbContext();

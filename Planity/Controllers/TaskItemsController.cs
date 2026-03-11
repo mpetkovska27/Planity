@@ -23,7 +23,8 @@ namespace Planity.Controllers
             var query = db.TaskItems
                         .Include(t => t.Group)
                         .Include(t => t.Subject)
-                        .Include(t => t.User);
+                        .Include(t => t.User)
+                        .Where(t => !t.IsGroupTask);
 
             var subjectsQuery = db.Subjects.Include(s => s.User);
             if (!User.IsInRole("Admin"))
@@ -38,13 +39,13 @@ namespace Planity.Controllers
                 return View(query.ToList());
             }
             //za teamleader - gleda svoi zadaci i kade sto e lider 
-            if (User.IsInRole("TimLeader"))
+            if (User.IsInRole("TeamLeader"))
             {
-                var tlTasks = query.Where(t => t.UserId == currentUserId || (t.IsGroupTask && t.Group.TeamLeaderId == currentUserId)).ToList();
+                var tlTasks = query.Where(t => t.UserId == currentUserId).ToList();
                 return View(tlTasks);
             }
-            //za student gleda samo svoi i grupni od grupi koi e clen
-            var studentTasks = query.Where(t => t.UserId == currentUserId || (t.IsGroupTask && t.Group.Members.Any(m => m.UserId == currentUserId))).ToList();
+            //za student gleda samo svoi
+            var studentTasks = query.Where(t => t.UserId == currentUserId).ToList();
             return View(studentTasks);
         }
 

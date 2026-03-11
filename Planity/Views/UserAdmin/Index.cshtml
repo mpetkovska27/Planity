@@ -35,7 +35,7 @@
                         {
                             var roleName = rolesDict[role.RoleId];
                             var badgeClass = roleName == "Admin" ? "bg-danger" :
-                                             roleName == "TimLeader" ? "bg-warning text-dark" : "bg-info text-dark";
+                                             roleName == "TeamLeader" ? "bg-warning text-dark" : "bg-info text-dark";
 
                             <span class="badge @badgeClass">@roleName</span>
                          }

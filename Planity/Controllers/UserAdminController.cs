@@ -43,7 +43,7 @@ namespace Planity.Controllers
                 return HttpNotFound();
             }
 
-            bool isTimLeader = userManager.IsInRole(userId, "TimLeader");
+            bool isTeamLeader = userManager.IsInRole(userId, "TeamLeader");
             bool isStudent = userManager.IsInRole(userId, "Student");
             bool isAdmin = userManager.IsInRole(userId, "Admin");
 
@@ -53,17 +53,17 @@ namespace Planity.Controllers
                 return RedirectToAction("Index");
             }
 
-            if (isTimLeader)
+            if (isTeamLeader)
             {
-                // Ako e TimLeader, vrati go vo Student
-                userManager.RemoveFromRole(userId, "TimLeader");
+                // Ako e TeamLeader, vrati go vo Student
+                if (isTeamLeader) userManager.RemoveFromRole(userId, "TeamLeader");
                 if (!isStudent) userManager.AddToRole(userId, "Student");
             }
             else if (isStudent)
             {
-                // Ako e Student, stavi go TimLeader
+                // Ako e Student, stavi go TeamLeader
                 userManager.RemoveFromRole(userId, "Student");
-                userManager.AddToRole(userId, "TimLeader");
+                userManager.AddToRole(userId, "TeamLeader");
             }
             else
             {
@@ -90,6 +90,51 @@ namespace Planity.Controllers
                     TempData["Error"] = "You cannot delete your own admin account!";
                     return RedirectToAction("Index");
                 }
+
+                var leaderGroups = db.Groups.Where(g => g.TeamLeaderId == userId).ToList();
+                foreach (var group in leaderGroups)
+                {
+                    var groupTasks = db.TaskItems.Where(t => t.GroupId == group.Id).ToList();
+                    var groupTaskIds = groupTasks.Select(t => t.Id).ToList();
+                    var groupSubTasks = db.TaskItems
+                        .Where(t => t.ParentTaskId.HasValue && groupTaskIds.Contains(t.ParentTaskId.Value))
+                        .ToList();
+
+                    db.TaskItems.RemoveRange(groupSubTasks);
+                    db.TaskItems.RemoveRange(groupTasks);
+
+                    var groupMembers = db.GroupMembers.Where(m => m.GroupId == group.Id).ToList();
+                    db.GroupMembers.RemoveRange(groupMembers);
+
+                    db.Groups.Remove(group);
+                }
+
+                var userGroupMemberships = db.GroupMembers.Where(m => m.UserId == userId).ToList();
+                db.GroupMembers.RemoveRange(userGroupMemberships);
+
+                var userTasks = db.TaskItems.Where(t => t.UserId == userId).ToList();
+                var userTaskIds = userTasks.Select(t => t.Id).ToList();
+                var userSubTasks = db.TaskItems
+                    .Where(t => t.ParentTaskId.HasValue && userTaskIds.Contains(t.ParentTaskId.Value))
+                    .ToList();
+
+                db.TaskItems.RemoveRange(userSubTasks);
+                db.TaskItems.RemoveRange(userTasks);
+
+                var userGrades = db.Grades.Where(g => g.UserId == userId).ToList();
+                db.Grades.RemoveRange(userGrades);
+
+                var userSubjects = db.Subjects.Where(s => s.UserId == userId).ToList();
+                var userSubjectIds = userSubjects.Select(s => s.Id).ToList();
+                var subjectTasks = db.TaskItems.Where(t => t.SubjectId.HasValue && userSubjectIds.Contains(t.SubjectId.Value)).ToList();
+                var subjectTaskIds = subjectTasks.Select(t => t.Id).ToList();
+                var subjectSubTasks = db.TaskItems
+                    .Where(t => t.ParentTaskId.HasValue && subjectTaskIds.Contains(t.ParentTaskId.Value))
+                    .ToList();
+                db.TaskItems.RemoveRange(subjectSubTasks);
+                db.TaskItems.RemoveRange(subjectTasks);
+
+                db.Subjects.RemoveRange(userSubjects);
 
                 db.Users.Remove(user);
                 db.SaveChanges();

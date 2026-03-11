@@ -65,6 +65,169 @@ namespace Planity.Controllers
             return View(group);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public ActionResult AddGroupTask(int groupId, string title, string type, string priority, DateTime? dueDate)
+        {
+            var group = db.Groups
+                .Include(g => g.Members)
+                .FirstOrDefault(g => g.Id == groupId);
+            if (group == null)
+            {
+                return Json(new { success = false, message = "Group not found" });
+            }
+
+            string currentUserId = User.Identity.GetUserId();
+            bool isAdmin = User.IsInRole("Admin");
+            bool isLeader = group.TeamLeaderId == currentUserId;
+            bool isMember = group.Members.Any(m => m.UserId == currentUserId);
+            if (!isAdmin && !isLeader && !isMember)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            }
+
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return Json(new { success = false, message = "Task title is required" });
+            }
+
+            var taskType = TaskType.Homework;
+            if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse(type, true, out TaskType parsedType))
+            {
+                taskType = parsedType;
+            }
+
+            var taskPriority = Priority.Medium;
+            if (!string.IsNullOrWhiteSpace(priority) && Enum.TryParse(priority, true, out Priority parsedPriority))
+            {
+                taskPriority = parsedPriority;
+            }
+
+            var resolvedDueDate = dueDate ?? DateTime.Now.AddDays(7);
+
+            var task = new TaskItem
+            {
+                Title = title.Trim(),
+                Description = "",
+                Type = taskType,
+                Priority = taskPriority,
+                Status = TaskStatus.ToDo,
+                DueDate = resolvedDueDate,
+                GroupId = groupId,
+                UserId = currentUserId,
+                IsGroupTask = true
+            };
+
+            db.TaskItems.Add(task);
+            db.SaveChanges();
+
+            return Json(new { success = true, id = task.Id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public ActionResult UpdateGroupTaskStatus(int taskId, TaskStatus status)
+        {
+            var task = db.TaskItems
+                .Include(t => t.Group.Members)
+                .FirstOrDefault(t => t.Id == taskId);
+            if (task == null || !task.IsGroupTask || task.GroupId == null)
+            {
+                return HttpNotFound();
+            }
+
+            string currentUserId = User.Identity.GetUserId();
+            bool isAdmin = User.IsInRole("Admin");
+            bool isLeader = task.Group.TeamLeaderId == currentUserId;
+            bool isMember = task.Group.Members.Any(m => m.UserId == currentUserId);
+
+            if (!isAdmin && !isLeader && !isMember)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            }
+
+            task.Status = status;
+            db.SaveChanges();
+
+            return Json(new { success = true, status = task.Status.ToString() });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public ActionResult UpdateGroupTask(int taskId, string title, string type, string priority, DateTime? dueDate)
+        {
+            var task = db.TaskItems
+                .Include(t => t.Group.Members)
+                .FirstOrDefault(t => t.Id == taskId);
+            if (task == null || !task.IsGroupTask || task.GroupId == null)
+            {
+                return HttpNotFound();
+            }
+
+            string currentUserId = User.Identity.GetUserId();
+            bool isAdmin = User.IsInRole("Admin");
+            bool isLeader = task.Group.TeamLeaderId == currentUserId;
+            bool isMember = task.Group.Members.Any(m => m.UserId == currentUserId);
+            if (!isAdmin && !isLeader && !isMember)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            }
+
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return Json(new { success = false, message = "Task title is required" });
+            }
+
+            if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse(type, true, out TaskType parsedType))
+            {
+                task.Type = parsedType;
+            }
+
+            if (!string.IsNullOrWhiteSpace(priority) && Enum.TryParse(priority, true, out Priority parsedPriority))
+            {
+                task.Priority = parsedPriority;
+            }
+
+            task.Title = title.Trim();
+            task.DueDate = dueDate;
+            db.SaveChanges();
+
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public ActionResult DeleteGroupTask(int taskId)
+        {
+            var task = db.TaskItems
+                .Include(t => t.Group.Members)
+                .FirstOrDefault(t => t.Id == taskId);
+            if (task == null || !task.IsGroupTask || task.GroupId == null)
+            {
+                return HttpNotFound();
+            }
+
+            string currentUserId = User.Identity.GetUserId();
+            bool isAdmin = User.IsInRole("Admin");
+            bool isLeader = task.Group.TeamLeaderId == currentUserId;
+            bool isMember = task.Group.Members.Any(m => m.UserId == currentUserId);
+            if (!isAdmin && !isLeader && !isMember)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            }
+
+            var subTasks = db.TaskItems.Where(t => t.ParentTaskId == task.Id).ToList();
+            db.TaskItems.RemoveRange(subTasks);
+            db.TaskItems.Remove(task);
+            db.SaveChanges();
+
+            return Json(new { success = true });
+        }
+
         // GET: Groups/Create
         [Authorize(Roles = "Admin,TeamLeader")]
         public ActionResult Create()
@@ -78,7 +241,7 @@ namespace Planity.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,TeamLeader")]
-        public ActionResult Create([Bind(Include = "Id,Name")] Group group)
+        public ActionResult Create([Bind(Include = "Id,Name,Description")] Group group)
         {
             if (ModelState.IsValid)
             {
@@ -110,9 +273,15 @@ namespace Planity.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
             Group group = db.Groups.Find(id);
-            if (group == null || group.TeamLeaderId != User.Identity.GetUserId())
+            if (group == null)
             {
                 return HttpNotFound();
+            }
+            bool isLeader = group.TeamLeaderId == User.Identity.GetUserId();
+            bool isAdmin = User.IsInRole("Admin");
+            if (!isAdmin && !isLeader)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             }
             return View(group);
         }
@@ -123,19 +292,32 @@ namespace Planity.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,TeamLeader")]
-        public ActionResult Edit([Bind(Include = "Id,Name,TeamLeaderId")] Group group)
+        public ActionResult Edit([Bind(Include = "Id,Name,Description")] Group group)
         {
-            if (group == null || (group.TeamLeaderId != User.Identity.GetUserId() && !User.IsInRole("Admin")))
+            if (group == null)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            var existingGroup = db.Groups.Find(group.Id);
+            if (existingGroup == null)
+            {
+                return HttpNotFound();
+            }
+            bool isLeader = existingGroup.TeamLeaderId == User.Identity.GetUserId();
+            bool isAdmin = User.IsInRole("Admin");
+            if (!isAdmin && !isLeader)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             }
 
             if (ModelState.IsValid)
             {
-                db.Entry(group).State = EntityState.Modified;
+                existingGroup.Name = group.Name;
+                existingGroup.Description = group.Description;
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
+            group.TeamLeaderId = existingGroup.TeamLeaderId;
             return View(group);
         }
 
@@ -148,9 +330,15 @@ namespace Planity.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
             Group group = db.Groups.Find(id);
-            if (group == null || group.TeamLeaderId != User.Identity.GetUserId())
+            if (group == null)
             {
                 return HttpNotFound();
+            }
+            bool isLeader = group.TeamLeaderId == User.Identity.GetUserId();
+            bool isAdmin = User.IsInRole("Admin");
+            if (!isAdmin && !isLeader)
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             }
             return View(group);
         }
@@ -166,6 +354,14 @@ namespace Planity.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             }
+
+            var groupTasks = db.TaskItems.Where(t => t.GroupId == id).ToList();
+            var groupTaskIds = groupTasks.Select(t => t.Id).ToList();
+            var groupSubTasks = db.TaskItems
+                .Where(t => t.ParentTaskId.HasValue && groupTaskIds.Contains(t.ParentTaskId.Value))
+                .ToList();
+            db.TaskItems.RemoveRange(groupSubTasks);
+            db.TaskItems.RemoveRange(groupTasks);
 
             var memberships = db.GroupMembers.Where(m => m.GroupId == id);
             db.GroupMembers.RemoveRange(memberships);
@@ -185,7 +381,7 @@ namespace Planity.Controllers
             bool isLeader = group.TeamLeaderId == User.Identity.GetUserId();
             bool isAdmin = User.IsInRole("Admin");
 
-            if (!isLeader && !isAdmin)
+            if (!isAdmin && !isLeader)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             }
@@ -215,7 +411,13 @@ namespace Planity.Controllers
         public ActionResult RemoveMember(int groupId, string userId)
         {
             var group = db.Groups.Find(groupId);
-            if (group.TeamLeaderId != User.Identity.GetUserId() && userId != User.Identity.GetUserId())
+            if (group == null)
+            {
+                return HttpNotFound();
+            }
+            bool isLeader = group.TeamLeaderId == User.Identity.GetUserId();
+            bool isAdmin = User.IsInRole("Admin");
+            if (!isAdmin && !isLeader && userId != User.Identity.GetUserId())
             {
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
             }

@@ -10,7 +10,7 @@ using Planity.Models;
 
 namespace Planity.Controllers
 {
-    [Authorize(Roles = "Student,TimLeader,Admin")]
+    [Authorize(Roles = "Student,TeamLeader,Admin")]
     public class DashboardController : Controller
     {
         private readonly ApplicationDbContext db = new ApplicationDbContext();
@@ -28,7 +28,7 @@ namespace Planity.Controllers
             {
                 myTasks = tasksQuery.ToList();
             }
-            else if (User.IsInRole("TimLeader"))
+            else if (User.IsInRole("TeamLeader"))
             {
                 myTasks = tasksQuery
                     .Where(t => t.UserId == userId ||

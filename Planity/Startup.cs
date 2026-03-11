@@ -22,7 +22,7 @@ namespace Planity
                 var roleManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(context));
                 var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(context));
 
-                string[] roles = { "Admin", "TimLeader", "Student" };
+                string[] roles = { "Admin", "TeamLeader", "Student" };
                 foreach (var role in roles)
                 {
                     if (!roleManager.RoleExists(role))

@@ -1,0 +1,31 @@
+@using System
+
+<div class="mb-3">
+    <label for="groupTaskTitle" class="form-label">Title</label>
+    <input id="groupTaskTitle" type="text" class="form-control" placeholder="New task..." />
+</div>
+<div class="row g-2 mb-3">
+    <div class="col-md-4">
+        <label for="groupTaskType" class="form-label">Type</label>
+        <select id="groupTaskType" class="form-select form-select-sm">
+            @foreach (var type in Enum.GetNames(typeof(Planity.Models.TaskType)))
+            {
+                <option value="@type">@type</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label for="groupTaskPriority" class="form-label">Priority</label>
+        <select id="groupTaskPriority" class="form-select form-select-sm">
+            @foreach (var priority in Enum.GetNames(typeof(Planity.Models.Priority)))
+            {
+                <option value="@priority">@priority</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label for="groupTaskDueDate" class="form-label">Due Date</label>
+        <input id="groupTaskDueDate" type="date" class="form-control form-control-sm"
+               value="@DateTime.Now.AddDays(7).ToString("yyyy-MM-dd")" />
+    </div>
+</div>

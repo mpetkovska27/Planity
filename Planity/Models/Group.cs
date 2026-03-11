@@ -14,6 +14,8 @@ namespace Planity.Models
         [Required(ErrorMessage = "Group name is required!")]
         [StringLength(100)]
         public string Name { get; set; }
+        [StringLength(500)]
+        public string Description { get; set; }
         public string TeamLeaderId { get; set; }
         [ForeignKey("TeamLeaderId")]
         public virtual ApplicationUser TeamLeader { get; set; }

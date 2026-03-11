@@ -217,6 +217,14 @@
     <Compile Include="Migrations\202603021035043_UpdateDatabaseSchema1.Designer.cs">
       <DependentUpon>202603021035043_UpdateDatabaseSchema1.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202603111545078_FixedBugs.cs" />
+    <Compile Include="Migrations\202603111545078_FixedBugs.Designer.cs">
+      <DependentUpon>202603111545078_FixedBugs.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202603111554242_UpdatedGroups.cs" />
+    <Compile Include="Migrations\202603111554242_UpdatedGroups.Designer.cs">
+      <DependentUpon>202603111554242_UpdatedGroups.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\DashboardViewModels.cs" />
@@ -617,6 +625,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202603021035043_UpdateDatabaseSchema1.resx">
       <DependentUpon>202603021035043_UpdateDatabaseSchema1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202603111545078_FixedBugs.resx">
+      <DependentUpon>202603111545078_FixedBugs.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202603111554242_UpdatedGroups.resx">
+      <DependentUpon>202603111554242_UpdatedGroups.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
